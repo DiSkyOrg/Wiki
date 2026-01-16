@@ -1,0 +1,495 @@
+---
+title: Listen Once
+description: Create one-time event listeners that automatically unregister after triggering
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Listen Once is a powerful feature that lets you create temporary event listeners that automatically unregister after being triggered once. It's perfect for waiting on user responses, confirmation prompts, or any situation where you need a one-time event.
+
+<Aside type="note" title="Available since v4.19.0">
+  The Listen Once feature was introduced in DiSky v4.19.0.
+</Aside>
+
+## What is Listen Once?
+
+Listen Once creates a temporary event listener that:
+
+1. Waits for a specific event to occur
+2. Executes your code when the event triggers
+3. Automatically unregisters itself
+4. Optionally executes timeout code if the event doesn't occur in time
+
+Think of it like setting an alarm that goes off once and then deletes itself.
+
+## Key Features
+
+- **One-time execution** - Listener removes itself after first trigger
+- **Timeout system** - Execute code if event doesn't happen in time
+- **Works with all DiSky events** - Any event type can be used
+- **Variable sharing** - Access variables from the outer context
+
+<Aside type="tip">
+  This is especially useful for interactive flows where you need to wait for specific user actions.
+</Aside>
+
+## Basic Syntax
+
+### Simple Listen Once
+
+```applescript
+listen once to "event name" with timeout X seconds:
+    # Code runs when event triggers
+    reply with "Event happened!"
+
+    on timeout:
+        # Code runs if timeout expires
+        reply with "Event didn't happen in time!"
+```
+
+### Without Timeout
+
+```applescript
+listen once to "event name":
+    # Code runs when event triggers
+    reply with "Event happened!"
+```
+
+<Aside type="caution">
+  Without a timeout, the listener will wait indefinitely until the event occurs. This can cause memory leaks if the event never triggers.
+</Aside>
+
+## Event Names
+
+Use event names without the "on" prefix:
+
+| Event Type | Listen Once Name |
+|------------|------------------|
+| `on message received` | `"message received"` |
+| `on button click` | `"button click"` |
+| `on dropdown click` | `"dropdown click"` |
+| `on member join` | `"member join"` |
+| `on reaction add` | `"reaction add"` |
+
+Any DiSky event works - just remove "on" from the beginning.
+
+## Context and Variables
+
+### Variable Sharing
+
+Variables from the outer context are accessible inside the listen once block:
+
+```applescript
+command /wait:
+    trigger:
+        set {_user} to event-user
+        set {_prefix} to "!"
+
+        listen once to "message received" with timeout 30 seconds:
+            # {_user} and {_prefix} are available here
+            reply with "%{_user}% sent: %event-message%"
+
+            on timeout:
+                # Variables available in timeout too
+                reply with "%{_user}% didn't respond!"
+```
+
+### Outer Context Access
+
+Use the `outer` prefix to access outer event values or effects:
+
+```applescript
+command /question:
+    trigger:
+        reply with "What's your favorite color?"
+
+        listen once to "message received" with timeout 10 seconds:
+            set {_answer} to content of event-message
+
+            # Use outer to reply in the original context
+            outer reply with "You said: %{_answer}%!"
+
+            on timeout:
+                outer reply with "You didn't answer in time!"
+```
+
+<Aside type="note" title="Understanding 'outer'">
+  - `outer reply` - Runs reply in the original command context
+  - `outer event-message` - Gets the message from the original event
+  - `outer event-user` - Gets the user from the original event
+</Aside>
+
+## Practical Examples
+
+### Confirmation Prompt
+
+```applescript
+command /delete-account:
+    trigger:
+        set {_user} to event-user
+
+        reply with "⚠️ Are you sure you want to delete your account? Type 'confirm' within 30 seconds."
+
+        listen once to "message received" with timeout 30 seconds:
+            # Check if correct user responded
+            if author of event-message is not {_user}:
+                stop
+
+            set {_response} to content of event-message
+
+            if {_response} is "confirm":
+                # Delete account logic here
+                outer reply with "✅ Account deleted."
+            else:
+                outer reply with "❌ Cancellation failed. Type 'confirm' to proceed."
+
+            on timeout:
+                outer reply with "⏰ Confirmation timeout. Account not deleted."
+```
+
+### Wait for Reaction
+
+```applescript
+command /poll:
+    trigger:
+        reply with "React with 👍 or 👎 within 60 seconds!" and store it in {_msg}
+
+        listen once to "reaction add" with timeout 60 seconds:
+            # Check if reaction is on our message
+            if event-message is not {_msg}:
+                stop
+
+            set {_reaction} to event-emote
+
+            if {_reaction} is reaction "👍":
+                outer reply with "You voted yes!"
+            else if {_reaction} is reaction "👎":
+                outer reply with "You voted no!"
+
+            on timeout:
+                outer reply with "Poll ended - no votes received."
+```
+
+### Interactive Story
+
+```applescript
+command /story:
+    trigger:
+        set {_player} to event-user
+
+        reply with "🏰 You enter a dark dungeon. Type 'left' or 'right' to choose your path."
+
+        listen once to "message received" with timeout 20 seconds:
+            if author of event-message is not {_player}:
+                stop
+
+            set {_choice} to content of event-message
+
+            if {_choice} is "left":
+                outer reply with "🗡️ You found a sword! Do you 'take' it or 'leave' it?"
+
+                # Nested listen once!
+                listen once to "message received" with timeout 15 seconds:
+                    if author of event-message is not {_player}:
+                        stop
+
+                    set {_action} to content of event-message
+
+                    if {_action} is "take":
+                        outer reply with "⚔️ You equipped the sword! The story continues..."
+                    else:
+                        outer reply with "You left the sword behind."
+
+            else if {_choice} is "right":
+                outer reply with "🕷️ A giant spider appears! Game over!"
+
+            on timeout:
+                outer reply with "⏰ You stood still for too long and starved."
+```
+
+### Multi-Step Verification
+
+```applescript
+command /verify:
+    trigger:
+        set {_user} to event-user
+
+        reply with "Step 1: What's your favorite color?"
+
+        listen once to "message received" with timeout 30 seconds:
+            if author of event-message is not {_user}:
+                stop
+
+            set {_color} to content of event-message
+
+            outer reply with "Step 2: What's your age?"
+
+            listen once to "message received" with timeout 30 seconds:
+                if author of event-message is not {_user}:
+                    stop
+
+                set {_age} to content of event-message
+
+                outer reply with "✅ Verified! Color: %{_color}%, Age: %{_age}%"
+
+                on timeout:
+                    outer reply with "⏰ Verification timeout at step 2"
+
+            on timeout:
+                outer reply with "⏰ Verification timeout at step 1"
+```
+
+### Button Confirmation
+
+```applescript
+command /dangerous:
+    trigger:
+        set {_user} to event-user
+
+        set {_btn} to new danger button with id "confirm_%discord id of {_user}%" named "Confirm Action"
+
+        reply with message "⚠️ This will do something dangerous! Click within 10 seconds." with rich components {_btn}
+
+        listen once to "button click" with timeout 10 seconds:
+            if event-string doesn't start with "confirm_%discord id of {_user}%":
+                stop
+
+            if event-user is not {_user}:
+                reply with hidden "This isn't your button!"
+                stop
+
+            outer reply with "✅ Action confirmed and executed!"
+
+            on timeout:
+                outer reply with "⏰ Action cancelled due to timeout."
+```
+
+### Collect Multiple Responses
+
+```applescript
+command /survey:
+    trigger:
+        set {_user} to event-user
+        clear {_answers::*}
+
+        outer reply with "Question 1: What's your name?"
+
+        listen once to "message received" with timeout 20 seconds:
+            if author of event-message is not {_user}:
+                stop
+
+            add content of event-message to {_answers::*}
+
+            outer reply with "Question 2: What's your age?"
+
+            listen once to "message received" with timeout 20 seconds:
+                if author of event-message is not {_user}:
+                    stop
+
+                add content of event-message to {_answers::*}
+
+                outer reply with "Question 3: What's your hobby?"
+
+                listen once to "message received" with timeout 20 seconds:
+                    if author of event-message is not {_user}:
+                        stop
+
+                    add content of event-message to {_answers::*}
+
+                    # All done!
+                    make embed:
+                        set title of embed to "Survey Results"
+                        add field named "Name" with value first element of {_answers::*} to fields of embed
+                        add field named "Age" with value second element of {_answers::*} to fields of embed
+                        add field named "Hobby" with value third element of {_answers::*} to fields of embed
+
+                    outer reply with last embed
+```
+
+## Alternative Syntax
+
+### Simplified Without Subscribe
+
+If you don't need the timeout section, you can omit `on subscribe`:
+
+```applescript
+listen once to "message received" with timeout 10 seconds:
+    # Directly write code here
+    reply with "Message received!"
+
+    on timeout:
+        reply with "No message received"
+```
+
+### Without Timeout (Not Recommended)
+
+```applescript
+listen once to "message received":
+    reply with "Got a message!"
+```
+
+<Aside type="caution">
+  Omitting the timeout can cause listeners to persist indefinitely if the event never triggers. Always use timeouts in production code.
+</Aside>
+
+## Best Practices
+
+<Steps>
+
+1. **Always Use Timeouts**
+
+   Prevent memory leaks by setting reasonable timeouts (10-60 seconds typically).
+
+2. **Verify User Identity**
+
+   Check that the event is from the expected user:
+
+   ```applescript
+   if event-user is not {_originalUser}:
+       stop
+   ```
+
+3. **Use Outer for Context Effects**
+
+   Prefix effects with `outer` when they need to run in the original context.
+
+4. **Store Important Variables**
+
+   Capture variables before the listen once block:
+
+   ```applescript
+   set {_user} to event-user
+   set {_channel} to event-channel
+   ```
+
+5. **Provide Clear Instructions**
+
+   Tell users what you're waiting for and how long they have.
+
+6. **Handle Edge Cases**
+
+   Check for wrong users, wrong events, or unexpected inputs.
+
+7. **Keep It Simple**
+
+   Avoid deeply nested listen once blocks - they can be hard to maintain.
+
+</Steps>
+
+## Common Patterns
+
+### Yes/No Confirmation
+
+```applescript
+function askConfirmation(question: text, user: user):
+    reply with "%{question}% (yes/no)"
+
+    listen once to "message received" with timeout 30 seconds:
+        if author of event-message is not {_user}:
+            stop
+
+        set {_response} to content of event-message
+
+        if {_response} is "yes":
+            return true
+        else if {_response} is "no":
+            return false
+        else:
+            outer reply with "Please answer 'yes' or 'no'"
+            return false
+
+        on timeout:
+            return false
+```
+
+### Wait for Specific User Message
+
+```applescript
+function waitForMessage(user: user, timeout: timespan) :: text:
+    listen once to "message received" with timeout {_timeout}:
+        if author of event-message is {_user}:
+            return content of event-message
+
+        on timeout:
+            return "TIMEOUT"
+```
+
+## Limitations
+
+### No Outer Context Control
+
+```applescript
+# You cannot easily control outer context flow
+listen once to "message received":
+    # Cannot 'stop' the outer command directly
+    # Cannot modify outer command variables easily
+```
+
+### Nested Complexity
+
+```applescript
+# Deep nesting gets hard to read
+listen once to "event1":
+    listen once to "event2":
+        listen once to "event3":
+            # This is getting messy!
+```
+
+**Solution:** Break into separate commands or functions.
+
+## Troubleshooting
+
+### Timeout Not Working
+
+**Problem:** Timeout section never executes.
+
+**Solutions:**
+- Ensure timeout duration is specified correctly
+- Check that the event IS triggering (listener consumed)
+- Verify Skript syntax is correct
+
+### Variables Not Accessible
+
+**Problem:** Variables from outer context are null.
+
+**Solutions:**
+- Use local variables (`{_var}`)
+- Set variables before the listen once block
+- Don't rely on event values - store them in variables first
+
+### Wrong User Responding
+
+**Problem:** Anyone's message triggers the listener.
+
+**Solution:** Always check user identity:
+
+```applescript
+if event-user is not {_expectedUser}:
+    stop
+```
+
+### Multiple Triggers
+
+**Problem:** Want to listen more than once.
+
+**Explanation:** Listen Once is designed for single-use. For repeated listening, use normal events.
+
+**Alternative:** Create a new listener after each trigger if needed.
+
+## Use Cases
+
+- Confirmation prompts
+- Interactive tutorials
+- Multi-step forms
+- User-specific responses
+- Timed challenges
+- Verification systems
+- Choose-your-own-adventure games
+- Surveys and questionnaires
+
+## Next Steps
+
+- Build [Interactive Components](/guides/interactions/components/) for better UX
+- Create [Modals](/guides/interactions/modals/) for structured input
+- Learn about [Asynchronous Operations](/concepts/async/)
+- Implement [Error Handling](/concepts/error-handling/) for robust flows

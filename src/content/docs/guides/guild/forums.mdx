@@ -1,0 +1,461 @@
+---
+title: Forum Channels
+description: Manage Discord forum channels, posts, and tags programmatically
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Forum channels are Discord's organized discussion system, perfect for Q&A, announcements, or any topic-based community. Unlike regular text channels, forums organize conversations into individual posts (threads) that can be tagged, searched, and managed independently.
+
+## What Are Forum Channels?
+
+Forum channels are a special channel type that:
+
+- Organize content into individual **posts** (threads)
+- Use **tags** to categorize posts
+- Display posts in a feed-like interface
+- Support sorting and filtering
+
+Think of them like Reddit or a traditional forum, but integrated into Discord.
+
+<Aside type="note">
+  Forum channels don't allow direct messages. All communication happens within posts (threads).
+</Aside>
+
+## Working with Forum Channels
+
+### Getting a Forum Channel
+
+```applescript
+# By ID
+set {_forum} to forum with id "123456789"
+
+# From event
+on message received:
+    set {_forum} to event-channel
+    if {_forum} is a forum channel:
+        # Do something with forum
+```
+
+<Aside type="tip" title="Discord Commands">
+  The `forum` type can be used in Discord command arguments too!
+
+  ```applescript
+  discord command info <forum>:
+      trigger:
+          reply with "Forum: %arg-1%"
+  ```
+</Aside>
+
+### Getting Posts (Threads)
+
+All posts in a forum are actually threads:
+
+```applescript
+# Get all threads/posts from a forum
+set {_posts::*} to threads of forum with id "123456789"
+
+# Loop through posts
+loop {_posts::*}:
+    set {_post} to loop-value
+    set {_name} to discord name of {_post}
+    broadcast "Post: %{_name}%"
+```
+
+## Forum Posts
+
+Posts are represented as thread channels with additional properties.
+
+### Post Properties
+
+```applescript
+set {_post} to ... # Get post/thread
+
+# Get post name
+set {_name} to discord name of {_post}
+
+# Get members participating in the post
+set {_members::*} to members of {_post}
+
+# Get messages in the post
+retrieve messages from {_post} and store them in {_messages::*}
+
+# Get tags on the post
+set {_tags::*} to tags of {_post}
+```
+
+### Creating Posts
+
+```applescript
+# Create a new post in a forum
+create thread named "How do I...?" in forum with id "123456789" and store it in {_post}
+
+# Send initial message to the post
+post "Here's my question..." to {_post}
+```
+
+## Forum Tags
+
+Tags help organize and categorize posts. Each forum has its own set of tags that can be applied to posts.
+
+### Getting Tags
+
+Tags must be retrieved from their parent forum channel:
+
+```applescript
+# Get a tag by name from a specific forum
+set {_tag} to tag named "resolved" from forum channel with id "123456789"
+
+# Check if tag exists
+if {_tag} is set:
+    # Tag found
+else:
+    # Tag doesn't exist
+```
+
+<Aside type="caution">
+  Since each forum has its own tags, you must specify which forum you're getting the tag from. Tags from one forum can't be used in another.
+</Aside>
+
+### Creating Tags
+
+Tags must be created and added to the forum before they can be used on posts:
+
+```applescript
+# Create a new tag (not yet on Discord)
+set {_newTag} to new tag named "question" with reaction "❓"
+
+# Add tag to the forum (now it exists on Discord)
+add {_newTag} to tags of forum channel with id "123456789"
+```
+
+<Aside type="tip">
+  Tags are created locally first, then added to the forum. They're not available until added to Discord.
+</Aside>
+
+### Adding Tags to Posts
+
+Once a tag exists on the forum, you can add it to posts:
+
+```applescript
+# Get the tag from the forum
+set {_tag} to tag named "solved" from forum channel with id "FORUM_ID"
+
+# Add tag to a post
+add {_tag} to tags of thread channel with id "POST_ID"
+```
+
+### Tag Properties
+
+```applescript
+set {_tag} to new tag named "bug" with reaction "🐛"
+
+# Tags have:
+# - Name: displayed text
+# - Emoji: optional visual indicator
+```
+
+## Practical Examples
+
+### Q&A Forum System
+
+```applescript
+command /createforum:
+    trigger:
+        # Create forum channel
+        await create new forum channel named "Questions & Answers" in event-guild and store it in {_forum}
+
+        # Create useful tags
+        set {_questionTag} to new tag named "question" with reaction "❓"
+        set {_solvedTag} to new tag named "solved" with reaction "✅"
+        set {_bugTag} to new tag named "bug" with reaction "🐛"
+        set {_featureTag} to new tag named "feature-request" with reaction "💡"
+
+        # Add tags to forum
+        add {_questionTag} to tags of {_forum}
+        add {_solvedTag} to tags of {_forum}
+        add {_bugTag} to tags of {_forum}
+        add {_featureTag} to tags of {_forum}
+
+        reply with "✅ Q&A forum created with tags!"
+```
+
+### Mark Post as Solved
+
+```applescript
+command /solved:
+    trigger:
+        # Get current channel (must be a forum post)
+        set {_post} to event-channel
+
+        # Verify it's a thread in a forum
+        if {_post} is not a thread channel:
+            reply with "❌ This command only works in forum posts!"
+            stop
+
+        # Get parent forum
+        set {_forum} to parent of {_post}
+
+        # Get solved tag
+        set {_solvedTag} to tag named "solved" from {_forum}
+
+        if {_solvedTag} is not set:
+            reply with "❌ This forum doesn't have a 'solved' tag!"
+            stop
+
+        # Add solved tag to post
+        add {_solvedTag} to tags of {_post}
+
+        # Rename post to show it's solved
+        set {_currentName} to discord name of {_post}
+        set discord name of {_post} to "[SOLVED] %{_currentName}%"
+
+        reply with "✅ Post marked as solved!"
+```
+
+### Auto-Tag Posts
+
+```applescript
+on thread create:
+    # Check if thread is in a forum
+    set {_parent} to parent of event-channel
+
+    if {_parent} is a forum channel:
+        # Get initial message content
+        retrieve messages from event-channel and store them in {_msgs::*}
+        set {_content} to first element of {_msgs::*}
+
+        # Auto-tag based on keywords
+        if {_content} contains "bug":
+            set {_tag} to tag named "bug" from {_parent}
+            if {_tag} is set:
+                add {_tag} to tags of event-channel
+
+        else if {_content} contains "how" or {_content} contains "?":
+            set {_tag} to tag named "question" from {_parent}
+            if {_tag} is set:
+                add {_tag} to tags of event-channel
+```
+
+### Forum Statistics
+
+```applescript
+command /forumstats <forum>:
+    trigger:
+        set {_forum} to arg-1
+        set {_threads::*} to threads of {_forum}
+
+        # Count posts
+        set {_postCount} to size of {_threads::*}
+
+        # Count by tag
+        clear {_tagCounts::*}
+        loop {_threads::*}:
+            set {_postTags::*} to tags of loop-value
+            loop {_postTags::*}:
+                set {_tagName} to discord name of loop-value-2
+                add 1 to {_tagCounts::%{_tagName}%}
+
+        # Build statistics embed
+        make embed:
+            set title of embed to "Forum Statistics"
+            set description of embed to "Stats for %discord name of {_forum}%"
+
+            add field named "Total Posts" with value "%{_postCount}%" to fields of embed
+
+            # Add tag breakdown
+            if {_tagCounts::*} is set:
+                clear {_tagList::*}
+                loop {_tagCounts::*}:
+                    add "%loop-index%: %loop-value%" to {_tagList::*}
+                add field named "Posts by Tag" with value join {_tagList::*} with nl to fields of embed
+
+            set embed color of embed to blue
+
+        reply with last embed
+```
+
+### Create Help Post Template
+
+```applescript
+command /askhelp <text>:
+    trigger:
+        set {_question} to arg-1
+        set {_forum} to forum with id "HELP_FORUM_ID"
+
+        # Create post
+        await create thread named "Help: %{_question}%" in {_forum} and store it in {_post}
+
+        # Get question tag
+        set {_tag} to tag named "question" from {_forum}
+        if {_tag} is set:
+            add {_tag} to tags of {_post}
+
+        # Post template message
+        create a new message and store it in {_msg}:
+            make embed:
+                set title of embed to "Help Request"
+                set description of embed to {_question}
+                set author of embed to discord name of event-user
+                set author icon of embed to avatar of event-user
+                add field named "Status" with value "⏳ Waiting for response" to fields of embed
+                set embed color of embed to orange
+            add last embed to embeds of message
+
+            # Add helpful buttons
+            make new component row and store it in {_row}:
+                add new success button with id "mark_solved_%discord id of {_post}%" named "Mark Solved" with reaction "✅" to components of the row builder
+                add new danger button with id "close_post_%discord id of {_post}%" named "Close" with reaction "🗑️" to components of the row builder
+            add {_row} to rows of message
+
+        post {_msg} to {_post}
+
+        reply with "✅ Help post created: %jump url of {_post}%"
+```
+
+### Manage Forum Tags
+
+```applescript
+command /managetags:
+    trigger:
+        set {_forum} to forum with id "FORUM_ID"
+
+        # Create dropdown with tag management options
+        set {_dropdown} to new dropdown with id "tag_action"
+        set placeholder of {_dropdown} to "Select an action..."
+        set min range of {_dropdown} to 1
+        set max range of {_dropdown} to 1
+
+        add new option with value "create" named "Create New Tag" with reaction "➕" to options of {_dropdown}
+        add new option with value "list" named "List All Tags" with reaction "📋" to options of {_dropdown}
+        add new option with value "remove" named "Remove Tag" with reaction "➖" to options of {_dropdown}
+
+        reply with rich components {_dropdown}
+
+on dropdown click:
+    if event-dropdown is "tag_action":
+        set {_choice::*} to selected values
+        set {_action} to first element of {_choice::*}
+
+        if {_action} is "list":
+            set {_forum} to forum with id "FORUM_ID"
+            # Get available tags somehow
+            reply with "Tag list feature coming soon!"
+
+        else if {_action} is "create":
+            # Would need modal to get tag details
+            reply with "Create tag feature - use modal for input"
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Organize with Tags**
+
+   Create clear, descriptive tags that make sense for your community's topics.
+
+2. **Consistent Tag Names**
+
+   Use lowercase, hyphenated names (e.g., "bug-report", "feature-request").
+
+3. **Limit Tag Count**
+
+   Don't create too many tags - it makes categorization confusing. Aim for 5-10 key tags.
+
+4. **Use Emojis Wisely**
+
+   Add relevant emojis to tags for quick visual identification.
+
+5. **Pin Important Posts**
+
+   Use Discord's pin feature for frequently referenced posts.
+
+6. **Archive Old Posts**
+
+   Consider archiving or closing posts that are resolved or outdated.
+
+7. **Moderate Actively**
+
+   Monitor new posts and help add appropriate tags when users forget.
+
+</Steps>
+
+## Forum Guidelines
+
+Create clear guidelines for your forum users:
+
+```applescript
+command /forumrules:
+    trigger:
+        make embed:
+            set title of embed to "📋 Forum Guidelines"
+            set description of embed to "Please follow these rules when creating posts:"
+
+            add field named "1. Clear Titles" with value "Use descriptive titles that summarize your post" to fields of embed
+            add field named "2. Appropriate Tags" with value "Always add relevant tags to help others find your post" to fields of embed
+            add field named "3. Search First" with value "Check if your question has been answered before" to fields of embed
+            add field named "4. Mark as Solved" with value "When you get an answer, mark your post as solved" to fields of embed
+            add field named "5. Be Respectful" with value "Treat all community members with respect" to fields of embed
+
+            set embed color of embed to blue
+
+        reply with last embed
+```
+
+## Troubleshooting
+
+### Can't Get Tags
+
+**Problem:** Tag returns null or not found.
+
+**Solutions:**
+- Verify the tag name matches exactly (case-sensitive)
+- Ensure you're getting the tag from the correct forum
+- Check that the tag was actually created on Discord
+- Confirm the tag exists in Server Settings > Channels > Forum > Tags
+
+### Can't Add Tag to Post
+
+**Problem:** Adding tag to thread fails.
+
+**Solutions:**
+- Verify the thread is actually a forum post (not a regular thread)
+- Ensure the tag exists in the parent forum
+- Check bot has `MANAGE_THREADS` permission
+- Confirm the forum allows multiple tags per post
+
+### Posts Not Showing
+
+**Problem:** Created threads don't appear in forum.
+
+**Solutions:**
+- Verify the thread was created successfully
+- Check that it wasn't automatically archived
+- Ensure bot has `CREATE_PUBLIC_THREADS` permission
+- Look in "Archived" section of the forum
+
+### Thread vs Post Confusion
+
+**Problem:** Not sure when to use thread vs post terminology.
+
+**Clarification:**
+- In forums, **posts** and **threads** are the same thing
+- Use `threads of {_forum}` to get forum posts
+- Use `thread channel` type for post references
+- Both terms work interchangeably in DiSky
+
+## Forum Limits
+
+- **Tags per forum**: 20 maximum
+- **Tags per post**: 5 maximum
+- **Tag name**: 1-20 characters
+- **Post title**: 1-100 characters
+- **Forum channels per server**: No specific limit (counts toward total channels)
+
+## Next Steps
+
+- Set up [AutoMod](/guides/guild/automod/) to moderate forum posts
+- Track changes with [Audit Logs](/guides/guild/logs/)
+- Create [Welcome Screens](/guides/guild/welcome-screen/) for new members
+- Build interactive [Components](/guides/interactions/components/) for forum management

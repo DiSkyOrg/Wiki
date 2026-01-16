@@ -1,0 +1,374 @@
+---
+title: Welcome Screen
+description: Customize your server's welcome screen to guide new members
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The welcome screen is the first thing new members see when joining your server. It displays a custom message and highlights important channels, helping newcomers navigate your community.
+
+<Aside type="note" title="Available since v4.10.0">
+  Welcome screen modification features were introduced in DiSky v4.10.0.
+</Aside>
+
+## What Is a Welcome Screen?
+
+The welcome screen appears when users join your server and shows:
+
+- **Server description** - A brief overview of your community
+- **Recommended channels** - Up to 5 important channels with descriptions and emojis
+- **Visual guidance** - Helps new members know where to start
+
+<Aside type="caution" title="Server Requirements">
+  Your server must have the **Community** feature enabled to use welcome screens. Enable it in Server Settings > Enable Community.
+</Aside>
+
+## Welcome Screen Structure
+
+A welcome screen consists of:
+
+1. **Description** - Text explaining what your server is about
+2. **Channel List** - Up to 5 channels with:
+   - Channel reference
+   - Custom label/name
+   - Optional emoji
+   - Brief description
+
+## Modifying the Welcome Screen
+
+Use the `modify welcome screen` section to update your server's welcome screen:
+
+### Basic Example
+
+```applescript
+command /setupwelcome:
+    trigger:
+        set {_guild} to event-guild
+
+        modify welcome screen of {_guild}:
+            # Set the server description
+            change the screen description to "Welcome to our community! Please read the rules and get roles before chatting."
+
+            # Add recommended channels (up to 5)
+            add channel with id "RULES_CHANNEL_ID" named "Read our rules" with reaction "📜" to the screen
+            add channel with id "ROLES_CHANNEL_ID" named "Get roles" with reaction "🎟️" to the screen
+
+        reply with "✅ Welcome screen updated!"
+```
+
+### Complete Welcome Screen Setup
+
+```applescript
+command /updatewelcome:
+    trigger:
+        set {_guild} to event-guild
+
+        modify welcome screen of {_guild}:
+            # Server description
+            change the screen description to "🎮 Welcome to Gaming Hub!%nl%Join our community of gamers, make friends, and have fun!"
+
+            # Essential channels
+            add channel with id "RULES_ID" named "📋 Rules & Guidelines" with reaction "📜" to the screen
+            add channel with id "ROLES_ID" named "🎭 Get Your Roles" with reaction "🎟️" to the screen
+            add channel with id "CHAT_ID" named "💬 General Chat" with reaction "💬" to the screen
+            add channel with id "EVENTS_ID" named "🎉 Server Events" with reaction "🎉" to the screen
+            add channel with id "HELP_ID" named "❓ Need Help?" with reaction "❓" to the screen
+
+        reply with hidden "✅ Welcome screen has been updated!"
+```
+
+<Aside type="tip">
+  Changes apply immediately after the section executes. There's no need for a separate "save" command.
+</Aside>
+
+## Partial Updates
+
+You can update only the description or only the channels:
+
+### Update Description Only
+
+```applescript
+modify welcome screen of {_guild}:
+    change the screen description to "New description text"
+    # Channels remain unchanged
+```
+
+### Update Channels Only
+
+```applescript
+modify welcome screen of {_guild}:
+    # Description remains unchanged
+
+    # Replace all channels with new ones
+    add channel with id "CHANNEL1" named "Channel 1" with reaction "1️⃣" to the screen
+    add channel with id "CHANNEL2" named "Channel 2" with reaction "2️⃣" to the screen
+```
+
+<Aside type="caution">
+  When adding channels, you replace ALL existing channels. Make sure to add all channels you want displayed.
+</Aside>
+
+## Practical Examples
+
+### Gaming Server Welcome
+
+```applescript
+command /setupgaming:
+    trigger:
+        modify welcome screen of event-guild:
+            change the screen description to "🎮 **Gaming Hub**%nl%%nl%Welcome! Join our active gaming community.%nl%✨ Make friends%nl%🎉 Join events%nl%🏆 Compete in tournaments"
+
+            add channel with id "RULES_ID" named "Server Rules" with reaction "📜" to the screen
+            add channel with id "ROLES_ID" named "Choose Your Games" with reaction "🎮" to the screen
+            add channel with id "GENERAL_ID" named "General Chat" with reaction "💬" to the screen
+            add channel with id "LFG_ID" named "Looking for Group" with reaction "🔍" to the screen
+            add channel with id "EVENTS_ID" named "Events & Tournaments" with reaction "🏆" to the screen
+
+        reply with "✅ Gaming server welcome screen set up!"
+```
+
+### Study/Education Server
+
+```applescript
+command /setupstudy:
+    trigger:
+        modify welcome screen of event-guild:
+            change the screen description to "📚 **Study Together**%nl%%nl%A supportive community for students!%nl%📖 Study resources%nl%👥 Study groups%nl%❓ Homework help"
+
+            add channel with id "INTRO_ID" named "Introduce Yourself" with reaction "👋" to the screen
+            add channel with id "RULES_ID" named "Community Guidelines" with reaction "📋" to the screen
+            add channel with id "SUBJECTS_ID" named "Pick Your Subjects" with reaction "📚" to the screen
+            add channel with id "HELP_ID" named "Homework Help" with reaction "❓" to the screen
+            add channel with id "RESOURCES_ID" named "Study Resources" with reaction "📖" to the screen
+
+        reply with "✅ Study server welcome screen configured!"
+```
+
+### Community Server with Forums
+
+```applescript
+command /setupcommunity:
+    trigger:
+        modify welcome screen of event-guild:
+            change the screen description to "🌟 **Creative Community**%nl%%nl%Share your creations, get feedback, collaborate!%nl%%nl%Start by checking the rules and introducing yourself."
+
+            add channel with id "RULES_ID" named "Rules & Guidelines" with reaction "📜" to the screen
+            add channel with id "INTROS_ID" named "Introductions" with reaction "👋" to the screen
+            add channel with id "SHOWCASE_ID" named "Showcase Your Work" with reaction "🎨" to the screen
+            add channel with id "FEEDBACK_ID" named "Get Feedback" with reaction "💬" to the screen
+            add channel with id "COLLAB_ID" named "Collaborations" with reaction "🤝" to the screen
+
+        reply with "✅ Community welcome screen ready!"
+```
+
+### Seasonal Welcome Screen
+
+Update the welcome screen for special events:
+
+```applescript
+command /holidaywelcome:
+    trigger:
+        modify welcome screen of event-guild:
+            change the screen description to "🎄 **Happy Holidays!**%nl%%nl%Welcome to our festive server!%nl%🎁 Holiday events%nl%❄️ Winter games%nl%🎉 Special giveaways"
+
+            add channel with id "RULES_ID" named "Holiday Rules" with reaction "🎄" to the screen
+            add channel with id "EVENTS_ID" named "Holiday Events" with reaction "🎁" to the screen
+            add channel with id "GAMES_ID" named "Winter Games" with reaction "❄️" to the screen
+            add channel with id "GIVEAWAY_ID" named "Giveaways" with reaction "🎉" to the screen
+            add channel with id "CHAT_ID" named "Festive Chat" with reaction "⛄" to the screen
+
+        reply with "🎄 Holiday welcome screen activated!"
+```
+
+### Dynamic Welcome Based on Server Size
+
+```applescript
+command /adaptwelcome:
+    trigger:
+        set {_memberCount} to size of members of event-guild
+
+        modify welcome screen of event-guild:
+            if {_memberCount} < 100:
+                change the screen description to "👋 Welcome to our growing community!%nl%We're a small, friendly server. Join the conversation!"
+
+                add channel with id "RULES_ID" named "Rules" with reaction "📜" to the screen
+                add channel with id "CHAT_ID" named "General Chat" with reaction "💬" to the screen
+                add channel with id "HELP_ID" named "Get Help" with reaction "❓" to the screen
+
+            else if {_memberCount} < 1000:
+                change the screen description to "🌟 Welcome to our active community!%nl%%{_memberCount}% members strong! Check out our channels below."
+
+                add channel with id "RULES_ID" named "Server Rules" with reaction "📜" to the screen
+                add channel with id "ROLES_ID" named "Get Roles" with reaction "🎭" to the screen
+                add channel with id "CHAT_ID" named "General Chat" with reaction "💬" to the screen
+                add channel with id "EVENTS_ID" named "Events" with reaction "🎉" to the screen
+                add channel with id "HELP_ID" named "Support" with reaction "❓" to the screen
+
+            else:
+                change the screen description to "🎉 Welcome to our massive community!%nl%Join %{_memberCount}% members in the fun! Navigate using the channels below."
+
+                add channel with id "RULES_ID" named "Important: Read Rules" with reaction "⚠️" to the screen
+                add channel with id "ROLES_ID" named "Get Your Roles" with reaction "🎭" to the screen
+                add channel with id "INFO_ID" named "Server Information" with reaction "ℹ️" to the screen
+                add channel with id "CHAT_ID" named "Main Chat" with reaction "💬" to the screen
+                add channel with id "HELP_ID" named "Help & Support" with reaction "🆘" to the screen
+
+        reply with "✅ Welcome screen adapted for server size!"
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Keep Description Concise**
+
+   Make it brief but informative. New members should understand your server at a glance.
+
+2. **Prioritize Essential Channels**
+
+   Show rules, role selection, and main chat first. Save niche channels for later discovery.
+
+3. **Use Clear Labels**
+
+   Channel names should clearly indicate their purpose (e.g., "Get Roles Here" not just "Roles").
+
+4. **Add Relevant Emojis**
+
+   Emojis make the welcome screen more visual and help channels stand out.
+
+5. **Update Regularly**
+
+   Refresh the welcome screen for events, seasons, or when your server evolves.
+
+6. **Test the Experience**
+
+   Create a test account and join your server to see how the welcome screen looks.
+
+7. **Don't Overwhelm**
+
+   Limit to 3-5 channels. Too many options can confuse new members.
+
+</Steps>
+
+## Welcome Screen Guidelines
+
+Tips for writing effective descriptions:
+
+```applescript
+# ✅ Good - Clear and welcoming
+"Welcome to Art Hub! Share your creations, get feedback, and improve your skills. Start by reading the rules and introducing yourself!"
+
+# ❌ Bad - Too vague
+"Welcome. This is a server."
+
+# ✅ Good - Specific benefits
+"🎵 Music Producers Unite!%nl%✨ Share tracks%nl%🎓 Learn production%nl%🤝 Collaborate"
+
+# ❌ Bad - Too long
+"Welcome to our server! We have many channels for many different topics and we hope you enjoy your stay here. Please read all the rules before posting anything anywhere..."
+```
+
+## Troubleshooting
+
+### Changes Not Applying
+
+**Problem:** Welcome screen doesn't update.
+
+**Solutions:**
+- Verify server has Community feature enabled
+- Check bot has `MANAGE_GUILD` permission
+- Ensure channel IDs are valid
+- Try viewing the welcome screen from a different account
+
+### Community Feature Required Error
+
+**Problem:** Error about community features.
+
+**Solution:** Enable Community in Server Settings:
+1. Go to Server Settings > Enable Community
+2. Complete the setup process
+3. Try updating the welcome screen again
+
+### Invalid Channel IDs
+
+**Problem:** Channels don't appear or cause errors.
+
+**Solutions:**
+- Double-check channel IDs are correct
+- Verify channels exist and aren't deleted
+- Ensure bot can see the channels
+- Check you're using text channel IDs, not voice channels
+
+### Too Many Channels
+
+**Problem:** Can't add more than 5 channels.
+
+**Explanation:** Discord limits welcome screens to 5 channels maximum.
+
+**Solution:** Choose your 5 most important channels. Use the description to mention other key areas.
+
+### Description Not Formatting
+
+**Problem:** Line breaks or formatting don't work.
+
+**Solutions:**
+- Use `%nl%` for line breaks, not `\n`
+- Test formatting before deploying
+- Keep formatting simple (Discord's welcome screen has limited Markdown support)
+
+## Welcome Screen Limits
+
+- **Description**: 1-140 characters
+- **Channels**: 5 maximum
+- **Channel label**: 1-50 characters
+- **Community feature**: Required
+- **Permission needed**: `MANAGE_GUILD`
+
+## Integration Ideas
+
+### Welcome Screen + Verification
+
+```applescript
+# After user verifies, update them
+on member verify:
+    # Get unverified welcome channel
+    set {_welcomeChan} to text channel with id "WELCOME_ID"
+
+    post "Welcome %mention tag of event-member%! Check out the welcome screen to get started!" to {_welcomeChan}
+```
+
+### Scheduled Updates
+
+```applescript
+# Update welcome screen daily
+every 1 day:
+    loop all guilds:
+        modify welcome screen of loop-value:
+            change the screen description to "Welcome! Today is %now%. We have %size of members of loop-value% members!"
+            # ... add channels ...
+```
+
+### Welcome Screen Command
+
+Let moderators quickly update the welcome screen:
+
+```applescript
+command /quickwelcome <text>:
+    trigger:
+        # Check permissions
+        if event-user doesn't have permission "MANAGE_GUILD":
+            reply with hidden "❌ You need Manage Server permission!"
+            stop
+
+        modify welcome screen of event-guild:
+            change the screen description to arg-1
+
+        reply with "✅ Welcome description updated!"
+```
+
+## Next Steps
+
+- Set up [AutoMod](/guides/guild/automod/) to keep your server safe
+- Create [Forum Channels](/guides/guild/forums/) for organized discussions
+- Track actions with [Audit Logs](/guides/guild/logs/)
+- Build interactive [Components](/guides/interactions/components/) for role selection

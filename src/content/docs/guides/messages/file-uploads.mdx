@@ -1,0 +1,490 @@
+---
+title: File Uploads
+description: Learn how to attach files, images, and other media to Discord messages
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+File uploads let you attach files, images, documents, and other media to Discord messages. DiSky's file upload system supports multiple sources and gives you fine control over how files appear in Discord.
+
+<Aside type="note" title="Available since v4.24.0">
+  The new file upload system was introduced in DiSky v4.24.0, replacing the previous attachment system with a more flexible and powerful approach.
+</Aside>
+
+## What Are File Uploads?
+
+File uploads are attachments you can send with Discord messages. They can be:
+
+- Local files from your server
+- Files from URLs (HTTP, HTTPS, FTP)
+- Discord attachments (from messages or slash command arguments)
+- SkImage images (if SkImage2 is installed)
+
+Each file upload can have a custom display name and can be marked as a spoiler.
+
+## Creating File Uploads
+
+The syntax varies based on your file source. You can optionally specify a custom name and spoiler status for any source.
+
+<Tabs>
+<TabItem label="Local File">
+
+Upload files from your server's file system:
+
+```applescript
+# Basic upload
+set {_upload} to new file upload from file "plugins/DiSky/assets/image.png"
+
+# With custom name
+set {_upload} to new file upload from file "path/to/file.pdf" named "document.pdf"
+
+# As spoiler
+set {_upload} to new file upload from file "path/to/image.png" with spoiler true
+```
+
+<Aside type="tip">
+  You can use both absolute and relative file paths. Relative paths are relative to your server's root directory.
+</Aside>
+
+</TabItem>
+<TabItem label="URL">
+
+Upload files from the internet:
+
+```applescript
+# From HTTP/HTTPS URL
+set {_upload} to new file upload from url "https://example.com/image.png"
+
+# From FTP
+set {_upload} to new file upload from url "ftp://example.com/file.zip"
+
+# With custom name
+set {_upload} to new file upload from url "https://example.com/data.json" named "config.json"
+```
+
+</TabItem>
+<TabItem label="Discord Attachment">
+
+Re-upload attachments from Discord messages or slash command arguments:
+
+```applescript
+# From a message attachment
+set {_attachment} to first attachment of event-message
+set {_upload} to new file upload from attachment {_attachment}
+
+# From slash command argument
+set {_file} to argument "file" as attachment
+set {_upload} to new file upload from attachment {_file} named "user-upload.png"
+```
+
+</TabItem>
+<TabItem label="SkImage">
+
+Upload generated images (requires SkImage2):
+
+```applescript
+# Create an image with SkImage
+set {_image} to new image with width 500 and height 300
+# ... draw on the image ...
+
+# Upload it
+set {_upload} to new file upload from image {_image} named "generated.png"
+```
+
+<Aside type="caution">
+  **SkImage2 must be installed** for image uploads to work. Download it from Skript addons repositories.
+</Aside>
+
+</TabItem>
+</Tabs>
+
+## Using File Uploads
+
+Once you've created a file upload, you can attach it to messages in several ways:
+
+### In Rich Messages
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Here's your file!"
+
+    # Create and add upload
+    set {_upload} to new file upload from file "plugins/DiSky/report.pdf"
+    add {_upload} to the attachments of the message
+
+reply with {_msg}
+```
+
+### With Simple Messages
+
+```applescript
+# Create the upload
+set {_upload} to new file upload from file "path/to/screenshot.png"
+
+# Post with the file
+post "Check out this screenshot!" with files {_upload} to event-channel
+```
+
+### Multiple Files
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Multiple attachments:"
+
+    # Add multiple files
+    add new file upload from file "file1.txt" to the attachments of the message
+    add new file upload from file "file2.pdf" to the attachments of the message
+    add new file upload from url "https://example.com/file3.png" to the attachments of the message
+
+reply with {_msg}
+```
+
+## Using Files in Embeds
+
+You can reference uploaded files in embed images or thumbnails using the `attachment://` protocol:
+
+### Embed with Attached Image
+
+```applescript
+create a new message and store it in {_msg}:
+    make embed:
+        set title of embed to "Image Embed"
+        set embed color of embed to purple
+        # Reference the attachment by name
+        set image of embed to "attachment://my-image.png"
+    add last embed to the embeds of the message
+
+    # Add the file with matching name
+    set {_upload} to new file upload from file "path/to/image.png" named "my-image.png"
+    add {_upload} to the attachments of the message
+
+reply with {_msg}
+```
+
+<Aside type="caution" title="Names Must Match">
+  The name in `attachment://` **must exactly match** the file upload's name. `attachment://my-image.png` requires a file upload named `my-image.png`.
+</Aside>
+
+### Embed Thumbnail from URL
+
+```applescript
+create a new message and store it in {_msg}:
+    make embed:
+        set title of embed to "User Profile"
+        set embed color of embed to blue
+        # Reference the attachment for thumbnail
+        set thumbnail of embed to "attachment://avatar.png"
+    add last embed to the embeds of the message
+
+    # Download user's avatar and attach it
+    set {_avatarUrl} to avatar of event-user
+    set {_upload} to new file upload from url {_avatarUrl} named "avatar.png"
+    add {_upload} to the attachments of the message
+
+reply with {_msg}
+```
+
+## File Upload Properties
+
+### Custom Names
+
+Change how the file appears in Discord:
+
+```applescript
+# Original file: "20240116_report_final_v2.pdf"
+# Display name: "Monthly Report.pdf"
+set {_upload} to new file upload from file "data/20240116_report_final_v2.pdf" named "Monthly Report.pdf"
+```
+
+This is useful for:
+- Simplifying complex filenames
+- Adding context to URLs
+- Renaming user uploads
+- Matching attachment references in embeds
+
+### Spoiler Files
+
+Mark files as spoilers to hide their previews:
+
+```applescript
+# Create spoiler upload
+set {_upload} to new file upload from file "path/to/spoiler.png" with spoiler true
+
+create a new message and store it in {_msg}:
+    set the content of the message to "Spoiler image below!"
+    add {_upload} to the attachments of the message
+
+reply with {_msg}
+```
+
+Spoiler files appear blurred in Discord until users click to reveal them.
+
+## Practical Examples
+
+### Slash Command File Upload
+
+```applescript
+# Register slash command with file argument
+on ready:
+    set {_cmd} to new slash command named "upload" with description "Upload a file to the server"
+    add new attachment option named "file" with description "The file to upload" to options of {_cmd}
+    update {_cmd} globally in event-bot
+
+# Handle the upload
+on slash command:
+    if event-string is "upload":
+        set {_file} to argument "file" as attachment
+
+        # Check if it's an image
+        if attachment {_file} is an image:
+            # Download the file
+            download {_file} to path "plugins/DiSky/uploads/%file name of {_file}%"
+            reply with "✅ Image uploaded: `%file name of {_file}%`"
+        else:
+            reply with "❌ Please upload an image file!"
+```
+
+### Screenshot Generator
+
+```applescript
+command /screenshot:
+    trigger:
+        # Create image with SkImage
+        set {_img} to new image with width 800 and height 600
+        # ... draw your screenshot content ...
+
+        # Upload it
+        set {_upload} to new file upload from image {_img} named "screenshot.png"
+
+        create a new message and store it in {_msg}:
+            set the content of the message to "📸 Screenshot generated!"
+            add {_upload} to the attachments of the message
+
+        reply with {_msg}
+```
+
+### User Avatar Download
+
+```applescript
+command /avatar [<player>]:
+    trigger:
+        # Get user (default to command sender)
+        if arg-1 is set:
+            set {_user} to discord user with id "%uuid of arg-1%"
+        else:
+            set {_user} to event-user
+
+        # Get avatar URL
+        set {_avatarUrl} to avatar of {_user}
+
+        # Create upload from URL
+        set {_upload} to new file upload from url {_avatarUrl} named "%discord name of {_user}%-avatar.png"
+
+        create a new message and store it in {_msg}:
+            make embed:
+                set title of embed to "Avatar - %discord name of {_user}%"
+                set image of embed to "attachment://%discord name of {_user}%-avatar.png"
+                set embed color of embed to blue
+            add last embed to the embeds of the message
+
+            add {_upload} to the attachments of the message
+
+        reply with {_msg}
+```
+
+### Log Export
+
+```applescript
+command /exportlogs:
+    trigger:
+        # Read log file
+        set {_logPath} to "logs/latest.log"
+
+        # Check if file exists
+        if file {_logPath} exists:
+            set {_upload} to new file upload from file {_logPath} named "server-logs-%now%.log"
+
+            reply with "📄 Here are the server logs:" with files {_upload}
+        else:
+            reply with "❌ No logs found!"
+```
+
+### Multi-File Report
+
+```applescript
+command /report:
+    trigger:
+        create a new message and store it in {_msg}:
+            make embed:
+                set title of embed to "Server Report"
+                set description of embed to "Generated on %now%"
+                set embed color of embed to green
+            add last embed to the embeds of the message
+
+            # Attach multiple reports
+            add new file upload from file "reports/summary.pdf" named "Summary.pdf" to the attachments of the message
+            add new file upload from file "reports/details.csv" named "Details.csv" to the attachments of the message
+            add new file upload from file "reports/chart.png" named "Chart.png" to the attachments of the message
+
+        reply with {_msg}
+```
+
+### Dynamic File Generation
+
+```applescript
+command /config:
+    trigger:
+        # Generate config file content
+        set {_content} to "# Bot Configuration%nl%"
+        add "prefix: !" to {_content}
+        add "%nl%enabled: true" to {_content}
+        add "%nl%version: 1.0" to {_content}
+
+        # Write to temporary file
+        set {_path} to "temp/config-%now's timestamp%.yml"
+        write {_content} to file {_path}
+
+        # Upload the file
+        set {_upload} to new file upload from file {_path} named "config.yml"
+
+        reply with "⚙️ Here's your configuration:" with files {_upload}
+
+        # Clean up temp file after sending
+        delete file {_path}
+```
+
+### Spoiler Image Handler
+
+```applescript
+on message receive:
+    if message contains "!spoiler":
+        # Get all attachments
+        set {_attachments::*} to attachments of event-message
+
+        if size of {_attachments::*} is 0:
+            reply with "❌ No attachments found!"
+            stop
+
+        create a new message and store it in {_msg}:
+            set the content of the message to "🔒 Spoiler image(s):"
+
+            # Re-upload all as spoilers
+            loop {_attachments::*}:
+                set {_upload} to new file upload from attachment loop-value with spoiler true
+                add {_upload} to the attachments of the message
+
+        reply with {_msg}
+
+        # Delete original message
+        delete event-message
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Use Descriptive Names**
+
+   Give files clear names that describe their content, especially when uploading from URLs or temporary files.
+
+2. **Validate File Types**
+
+   Check attachment types in slash commands before processing to avoid errors.
+
+3. **Handle Missing Files**
+
+   Wrap file operations in try/catch blocks to handle missing or inaccessible files gracefully.
+
+4. **Clean Up Temporary Files**
+
+   Delete temporary files after uploading to save disk space.
+
+5. **Respect File Size Limits**
+
+   Discord has upload limits (8MB for regular users, 50MB for Nitro). Check file sizes before uploading.
+
+6. **Use Relative Paths**
+
+   Use relative paths for portability across different server setups.
+
+</Steps>
+
+## File Size Limits
+
+Discord enforces upload limits based on server boost level:
+
+- **No boosts**: 8 MB per file
+- **Level 2 boost**: 50 MB per file
+- **Level 3 boost**: 100 MB per file
+
+Your bot respects the server's current limit. Files exceeding the limit will fail to upload.
+
+## Supported File Types
+
+Discord supports a wide range of file types:
+
+- **Images**: PNG, JPG, GIF, WebP (auto-preview)
+- **Videos**: MP4, WebM, MOV (auto-preview)
+- **Audio**: MP3, WAV, OGG (inline player)
+- **Documents**: PDF, TXT, DOC, DOCX, etc.
+- **Archives**: ZIP, RAR, 7Z, etc.
+- **Code**: JS, PY, JAVA, etc. (syntax highlighting)
+
+## Troubleshooting
+
+### File Not Found
+
+**Problem:** Error says file doesn't exist.
+
+**Solutions:**
+- Check the file path is correct
+- Use absolute paths if relative paths aren't working
+- Verify the file exists before uploading
+- Check file permissions
+
+### File Too Large
+
+**Problem:** Upload fails with size error.
+
+**Solutions:**
+- Check the server's boost level and limits
+- Compress the file before uploading
+- Split large files into smaller parts
+- Use external hosting for very large files
+
+### Embed Image Not Showing
+
+**Problem:** `attachment://` reference doesn't display image.
+
+**Solutions:**
+- Verify the attachment name exactly matches the reference
+- Ensure the file was actually added to attachments
+- Check that the file is an image format
+- Confirm the file uploaded successfully
+
+### Download Failed (from URL)
+
+**Problem:** URL-based upload doesn't work.
+
+**Solutions:**
+- Verify the URL is accessible
+- Check for HTTPS/SSL issues
+- Ensure the URL directly points to a file
+- Try downloading the file manually first
+
+### SkImage Not Working
+
+**Problem:** Image uploads fail or don't work.
+
+**Solutions:**
+- Install SkImage2 addon
+- Verify SkImage is loaded properly
+- Check image creation code
+- Ensure image has valid dimensions
+
+## Next Steps
+
+- Learn about [Simple Messages](/guides/messages/simple-messages/)
+- Create [Advanced Messages](/guides/messages/advanced-messages/)
+- Add [Emojis](/guides/messages/emojis/) to enhance files
+- Send files via [Webhooks](/guides/messages/webhooks/)
