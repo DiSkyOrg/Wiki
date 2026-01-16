@@ -1,0 +1,499 @@
+---
+title: Error Handling
+description: Learn how to handle errors gracefully with DiSky's try/catch system
+---
+
+import { Aside, Steps, Code } from '@astrojs/starlight/components';
+
+Errors happen - users might have DMs disabled, channels might be deleted, or permissions might be insufficient. DiSky's try/catch system helps you handle these situations gracefully instead of letting your bot crash or show confusing errors.
+
+<Aside type="note" title="Available since v4.18.0">
+  The try/catch error handling system was introduced in DiSky v4.18.0.
+</Aside>
+
+## Why Error Handling Matters
+
+Without error handling, your bot might:
+- Send messages to unavailable channels
+- Fail silently without notifying users
+- Show technical error messages to end users
+- Break entire command flows due to one failure
+
+With proper error handling, your bot can:
+- Provide helpful feedback when things go wrong
+- Gracefully recover from failures
+- Continue working even when one operation fails
+- Give users actionable information
+
+## Basic Try/Catch Syntax
+
+The try/catch system wraps potentially failing code in a `try` block and handles errors in a `catch` block:
+
+```applescript
+try:
+    # Code that might fail goes here
+    post "Hello!" to {_channel}
+catch {_error}:
+    # Handle the error here
+    broadcast "Failed to send message: %{_error}%"
+```
+
+The error details are stored in the variable you specify (e.g., `{_error}`), which you can use to understand what went wrong.
+
+<Aside type="caution" title="Code After Catch Runs">
+  Code after a `catch` block **always runs by default**. Use `stop` in the catch block if you want to halt execution.
+</Aside>
+
+## Basic Example: Handling DM Failures
+
+A common use case is sending DMs to users who might have them disabled:
+
+```applescript
+command /notify <player>:
+    trigger:
+        set {_user} to discord user with id "%uuid of arg-1%"
+        set {_dm} to dm channel of {_user}
+
+        try:
+            post "You have a notification from the server!" to {_dm}
+            reply with "✅ Notification sent to %arg-1%"
+        catch {_error}:
+            reply with "❌ Could not send DM to %arg-1%. They may have DMs disabled."
+            stop
+```
+
+## Understanding Error Flow
+
+```applescript
+broadcast "1. Starting..."
+
+try:
+    broadcast "2. Inside try block"
+    post "Invalid message" to {_nonexistent_channel}  # This fails
+    broadcast "3. This never runs (skipped due to error)"
+catch {_error}:
+    broadcast "4. Caught error: %{_error}%"
+    # Without 'stop', execution continues after this block
+
+broadcast "5. This always runs unless you used 'stop' in catch"
+```
+
+**Output:**
+```
+1. Starting...
+2. Inside try block
+4. Caught error: [error details]
+5. This always runs unless you used 'stop' in catch
+```
+
+<Aside type="tip" title="Shared Variables">
+  Local variables are shared between `try`, `catch`, and code after. You can set variables in `try` and use them later.
+</Aside>
+
+## What Can Be Caught?
+
+DiSky's error handling covers many common operations:
+
+### Message Operations
+- Posting to invalid channels
+- Sending messages with invalid content
+- Using invalid components or embeds
+- Reply/post operations that fail
+
+### Channel Operations
+- Changing properties of deleted channels
+- Setting invalid channel names
+- Modifying channels without permissions
+
+### Media Operations
+- Setting invalid icons or avatars
+- Using broken image URLs
+- Invalid file paths for uploads
+
+### Webhook Operations
+- Invalid webhook URLs or names
+- Posting to deleted webhooks
+- Wrong webhook credentials
+
+<Aside type="note">
+  Error handling is expanding. Not all DiSky operations support try/catch yet, but more are being added in each version.
+</Aside>
+
+## Practical Examples
+
+### Safe Message Sending
+
+```applescript
+command /announce <text>:
+    trigger:
+        set {_message} to arg-1
+        set {_channel} to text channel with id "123456789"
+
+        try:
+            post {_message} to {_channel}
+            reply with "✅ Announcement posted!"
+        catch {_error}:
+            reply with "❌ Failed to post announcement: %{_error}%"
+            # Log the error for debugging
+            log "%{_error}%" to "errors.log"
+            stop
+```
+
+### Multiple Operations with Error Handling
+
+```applescript
+command /setup:
+    trigger:
+        try:
+            # Try to create a channel
+            await create new text channel named "welcome" in event-guild and store it in {_channel}
+
+            # Try to set its topic
+            await set topic of {_channel} to "Welcome to our server!"
+
+            # Try to send a message
+            post "Setup complete!" to {_channel}
+
+            reply with "✅ Channel created and configured!"
+
+        catch {_error}:
+            reply with "❌ Setup failed: %{_error}%"
+
+            # Clean up if partially complete
+            if {_channel} is set:
+                delete {_channel}
+
+            stop
+```
+
+### Handling DM Failures Gracefully
+
+```applescript
+command /dm <player> <text>:
+    trigger:
+        set {_target} to discord user with id "%uuid of arg-1%"
+        set {_dm} to dm channel of {_target}
+        set {_message} to arg-2
+
+        try:
+            post {_message} to {_dm}
+            reply with "✅ Message sent to %arg-1%"
+        catch {_error}:
+            reply with "❌ Could not send DM. Possible reasons:"
+            reply with "  • User has DMs disabled"
+            reply with "  • User is not linked to Discord"
+            reply with "  • User blocked the bot"
+            stop
+```
+
+### Safe Icon Updates
+
+```applescript
+command /seticon <text>:
+    trigger:
+        set {_url} to arg-1
+
+        try:
+            await set icon of event-guild to {_url}
+            reply with "✅ Server icon updated!"
+        catch {_error}:
+            if {_error} contains "Invalid URL":
+                reply with "❌ The URL you provided is invalid."
+            else if {_error} contains "Invalid image":
+                reply with "❌ The image format is not supported."
+            else:
+                reply with "❌ Failed to update icon: %{_error}%"
+            stop
+```
+
+### Bulk Operations with Error Counting
+
+```applescript
+command /massnotify <text>:
+    trigger:
+        set {_message} to arg-1
+        set {_users::*} to all members of event-guild
+        set {_success} to 0
+        set {_failed} to 0
+
+        loop {_users::*}:
+            set {_dm} to dm channel of loop-value
+
+            try:
+                post {_message} to {_dm}
+                add 1 to {_success}
+            catch {_error}:
+                add 1 to {_failed}
+                # Continue to next user (no 'stop' here)
+
+        reply with "📊 Results: %{_success}% sent, %{_failed}% failed"
+```
+
+### Nested Try/Catch
+
+```applescript
+command /complex:
+    trigger:
+        try:
+            # Outer operation
+            post "Starting complex operation..." to event-channel
+
+            try:
+                # Inner operation that might fail
+                await create new role named "Special" in event-guild and store it in {_role}
+                reply with "Role created!"
+            catch {_inner_error}:
+                reply with "⚠️ Could not create role: %{_inner_error}%"
+                # Continue despite inner failure
+
+            reply with "Outer operation complete!"
+
+        catch {_outer_error}:
+            reply with "❌ Outer operation failed: %{_outer_error}%"
+            stop
+```
+
+## Error Message Analysis
+
+You can check error messages to provide specific feedback:
+
+```applescript
+try:
+    post {_message} to {_channel}
+catch {_error}:
+    if {_error} contains "Missing Access":
+        reply with "❌ I don't have permission to post in that channel."
+    else if {_error} contains "Unknown Channel":
+        reply with "❌ That channel no longer exists."
+    else if {_error} contains "Invalid Form Body":
+        reply with "❌ The message content is invalid."
+    else:
+        reply with "❌ An error occurred: %{_error}%"
+    stop
+```
+
+## Logging Errors
+
+Keep track of errors for debugging:
+
+```applescript
+function logError(error: text):
+    set {_timestamp} to now
+    log "[%{_timestamp}%] ERROR: %{error}%" to "disky-errors.log"
+
+command /risky:
+    trigger:
+        try:
+            # Risky operation
+            post {_data} to {_channel}
+        catch {_error}:
+            logError({_error})
+            reply with "❌ Operation failed. Error logged."
+            stop
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Wrap Risky Operations**
+
+   Always wrap operations that might fail (DMs, channel operations, permission-dependent actions).
+
+2. **Provide Helpful Feedback**
+
+   Don't just show raw errors - translate them into user-friendly messages.
+
+3. **Use `stop` Appropriately**
+
+   Include `stop` in catch blocks when you want to halt execution after an error.
+
+4. **Log Errors for Debugging**
+
+   Keep error logs to identify patterns and fix recurring issues.
+
+5. **Clean Up After Failures**
+
+   If an operation partially completes, clean up any created resources in the catch block.
+
+6. **Test Error Conditions**
+
+   Try to trigger errors during development to ensure your handling works correctly.
+
+</Steps>
+
+## Common Patterns
+
+### Safe User Input Validation
+
+```applescript
+command /setavatar <text>:
+    trigger:
+        set {_url} to arg-1
+
+        # Validate URL format first
+        if {_url} doesn't contain "http":
+            reply with "❌ Please provide a valid URL (must start with http)"
+            stop
+
+        try:
+            await set avatar of event-bot to {_url}
+            reply with "✅ Avatar updated!"
+        catch {_error}:
+            reply with "❌ Invalid image URL or format"
+            stop
+```
+
+### Retry Logic
+
+```applescript
+command /retry:
+    trigger:
+        set {_attempts} to 0
+        set {_maxAttempts} to 3
+        set {_success} to false
+
+        loop {_maxAttempts} times:
+            add 1 to {_attempts}
+
+            try:
+                # Operation that might fail
+                post "Test message" to {_channel}
+                set {_success} to true
+                stop loop
+            catch {_error}:
+                if {_attempts} < {_maxAttempts}:
+                    wait 1 second
+                    # Try again
+                else:
+                    reply with "❌ Failed after %{_maxAttempts}% attempts"
+                    stop
+
+        if {_success} is true:
+            reply with "✅ Success!"
+```
+
+### Fallback Channel
+
+```applescript
+command /post <text>:
+    trigger:
+        set {_primary} to text channel with id "123456"
+        set {_fallback} to text channel with id "789012"
+
+        try:
+            post arg-1 to {_primary}
+            reply with "✅ Posted to primary channel"
+        catch {_error}:
+            # Try fallback
+            try:
+                post arg-1 to {_fallback}
+                reply with "⚠️ Primary channel unavailable. Posted to fallback."
+            catch {_fallback_error}:
+                reply with "❌ Both channels unavailable!"
+                stop
+```
+
+## When Not to Use Try/Catch
+
+Try/catch is powerful but shouldn't replace proper validation:
+
+### Don't Use for Logic Flow
+
+```applescript
+# BAD: Using errors for control flow
+try:
+    set {_value} to argument "optional" as string
+catch {_error}:
+    set {_value} to "default"
+
+# GOOD: Check if value exists
+set {_value} to argument "optional" as string
+if {_value} is not set:
+    set {_value} to "default"
+```
+
+### Don't Ignore All Errors
+
+```applescript
+# BAD: Silently swallowing all errors
+try:
+    # ... operations ...
+catch {_error}:
+    # Do nothing - user never knows what happened
+
+# GOOD: At least log or notify
+try:
+    # ... operations ...
+catch {_error}:
+    log "%{_error}%" to "errors.log"
+    reply with "An error occurred. Please try again later."
+```
+
+## Troubleshooting
+
+### Catch Block Not Executing
+
+**Problem:** The catch block never runs even when errors occur.
+
+**Possible causes:**
+- The operation isn't supported by try/catch yet
+- The error happens outside the try block
+- The operation succeeds (no error thrown)
+
+**Solution:** Check DiSky version and verify the operation is in the try block.
+
+### Code After Catch Always Runs
+
+**Problem:** Code runs even though an error occurred.
+
+**Explanation:** This is expected behavior! Code after catch blocks always runs.
+
+**Solution:** Use `stop` in the catch block to halt execution:
+
+```applescript
+try:
+    # ... operation ...
+catch {_error}:
+    reply with "Error: %{_error}%"
+    stop  # Prevents code below from running
+```
+
+### Can't Access Variables from Try Block
+
+**Problem:** Variables set in try block are null in catch block.
+
+**Solution:** Make sure you're using local variables (`{_variable}`), not event values.
+
+```applescript
+# Works correctly
+try:
+    set {_result} to "Success"
+catch {_error}:
+    broadcast {_result}  # Accessible
+
+# Might not work
+try:
+    set event-string to "Test"  # Event values don't persist
+catch {_error}:
+    broadcast event-string  # Might be null
+```
+
+## Error Handling Checklist
+
+Before deploying your bot, verify:
+
+- [ ] All DM operations are wrapped in try/catch
+- [ ] Channel modifications handle permission errors
+- [ ] User input is validated before use
+- [ ] Errors are logged for debugging
+- [ ] Users receive helpful error messages
+- [ ] Critical failures use `stop` to prevent partial operations
+- [ ] Cleanup code runs in catch blocks when needed
+
+## Next Steps
+
+- Understand [Asynchronous Operations](/concepts/async/) with `await`
+- Learn about [Data Structures](/concepts/data-structures/) for cleaner code
+- Build [Interactive Components](/guides/interactions/components/)
+- Create [Advanced Messages](/guides/messages/advanced-messages/)

@@ -1,0 +1,503 @@
+---
+title: Emojis & Reactions
+description: Learn how to use emojis and custom emotes in your Discord bot
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Emojis and custom emotes add personality and visual appeal to your bot's messages. DiSky supports both standard Unicode emojis and custom server emotes, making it easy to create engaging, expressive interactions.
+
+## Understanding the Difference
+
+Discord distinguishes between two types of emoji-like content:
+
+- **Emojis** - Unicode characters built into Discord, usable by everyone
+- **Emotes** - Custom images created by server owners, specific to guilds
+
+<Aside type="note">
+  Emotes are **guild-specific**. To differentiate emotes with the same name, use their unique **IDs**.
+</Aside>
+
+## Getting Emojis and Emotes
+
+DiSky uses the `reaction` expression to get both emojis and emotes:
+
+<Tabs>
+<TabItem label="Unicode Emoji">
+
+```applescript
+# Get a standard emoji by name
+set {_emoji} to reaction "joy"  # Returns 😂
+set {_heart} to reaction "heart"  # Returns ❤️
+set {_fire} to reaction "fire"  # Returns 🔥
+```
+
+DiSky automatically translates the name to the Unicode character.
+
+</TabItem>
+<TabItem label="Custom Emote (by ID)">
+
+```applescript
+# Get a custom emote by its ID
+set {_emote} to reaction "123456789012345678"
+```
+
+Each emote ID is unique across Discord. This is the **recommended** way to get custom emotes.
+
+</TabItem>
+<TabItem label="Custom Emote (by Name)">
+
+```applescript
+# Get a custom emote by name
+set {_emote} to reaction "Checkmark"
+```
+
+<Aside type="caution">
+  Getting emotes by name is **not recommended**. DiSky searches all guilds the bot is in, which can cause conflicts if multiple emotes share the same name.
+</Aside>
+
+</TabItem>
+<TabItem label="Full Reference">
+
+```applescript
+# Get an emote using its full Discord reference
+set {_emote} to reaction "<:Checkmark:123456789012345678>"
+```
+
+This method can be faster for retrieving many emotes at once, as DiSky parses the string and applies filters efficiently.
+
+</TabItem>
+</Tabs>
+
+## Using Emojis in Messages
+
+Once you have an emoji or emote, use it in messages:
+
+### In Text Messages
+
+```applescript
+set {_emoji} to reaction "wave"
+reply with "Hello! %{_emoji}% Welcome to the server!"
+# Output: Hello! 👋 Welcome to the server!
+```
+
+### In Embeds
+
+```applescript
+set {_star} to reaction "star"
+set {_fire} to reaction "fire"
+
+make embed:
+    set title of embed to "%{_star}% Featured Content %{_star}%"
+    set description of embed to "This content is %{_fire}%!"
+    set embed color of embed to gold
+
+reply with last embed
+```
+
+### In Buttons
+
+```applescript
+set {_check} to reaction "white_check_mark"
+
+set {_btn} to new success button with id "confirm" named "Confirm" with reaction {_check}
+reply with rich components {_btn}
+```
+
+You can also use the emoji name directly:
+
+```applescript
+set {_btn} to new success button with id "confirm" named "Confirm" with reaction "✅"
+```
+
+### In Dropdown Options
+
+```applescript
+set {_dropdown} to new dropdown with id "choice"
+
+add new option with value "opt1" named "Option 1" with reaction "1️⃣" to options of {_dropdown}
+add new option with value "opt2" named "Option 2" with reaction "2️⃣" to options of {_dropdown}
+add new option with value "opt3" named "Option 3" with reaction "3️⃣" to options of {_dropdown}
+
+reply with rich components {_dropdown}
+```
+
+## Adding Reactions to Messages
+
+Add emoji reactions to messages for polls, feedback, or interactive features:
+
+### Basic Reaction
+
+```applescript
+on message receive:
+    if message contains "cool":
+        set {_msg} to event-message
+        set {_emoji} to reaction "sunglasses"
+
+        add reaction {_emoji} to {_msg}
+```
+
+### Multiple Reactions
+
+```applescript
+command /poll <text>:
+    trigger:
+        post "📊 Poll: %arg-1%" to event-channel and store it in {_msg}
+
+        # Add reaction options
+        add reaction "👍" to {_msg}
+        add reaction "👎" to {_msg}
+        add reaction "🤷" to {_msg}
+
+        reply with "Poll created!"
+```
+
+### Using Custom Emotes
+
+```applescript
+on message receive:
+    if message contains "awesome":
+        set {_msg} to event-message
+        set {_customEmote} to reaction "123456789012345678"  # Your custom emote ID
+
+        add reaction {_customEmote} to {_msg}
+```
+
+## Reaction Events
+
+Detect when users react to messages:
+
+### Basic Reaction Handler
+
+```applescript
+on reaction add:
+    set {_emoji} to event-reaction
+    set {_user} to event-user
+    set {_msg} to event-message
+
+    broadcast "%{_user}% reacted with %{_emoji}%!"
+```
+
+### Filtering by Specific Emoji
+
+```applescript
+on reaction add:
+    if event-reaction is reaction "star":
+        # User reacted with ⭐
+        broadcast "%event-user% starred a message!"
+```
+
+### Poll System
+
+```applescript
+command /createpoll <text>:
+    trigger:
+        post "📊 **Poll:** %arg-1%" to event-channel and store it in {_poll}
+
+        # Add voting options
+        add reaction "👍" to {_poll}
+        add reaction "👎" to {_poll}
+
+        # Store poll ID for tracking
+        set {poll::%discord id of {_poll}%} to arg-1
+
+        reply with "Poll created! React to vote."
+
+on reaction add:
+    if {poll::%discord id of event-message%} is set:
+        # This is a poll message
+        set {_reaction} to event-reaction
+
+        if {_reaction} is reaction "thumbsup":
+            broadcast "%event-user% voted YES"
+        else if {_reaction} is reaction "thumbsdown":
+            broadcast "%event-user% voted NO"
+```
+
+## Super Reactions
+
+Super reactions are enhanced reactions with animated effects. However, bots have limited interaction with them.
+
+<Aside type="caution" title="Bot Limitation">
+  **Bots cannot add super reactions**, but they can detect them, get them, remove them, and check if users reacted with them. This is a Discord API limitation.
+</Aside>
+
+### Working with Super Reactions
+
+```applescript
+on reaction add:
+    if event-reaction is super:
+        broadcast "%event-user% used a super reaction!"
+```
+
+## Reaction Emotes
+
+Since DiSky v4.12.2, reaction events provide enhanced information through **Reaction Emotes**:
+
+### Checking Self Reactions
+
+Detect if the bot reacted to its own message:
+
+```applescript
+on reaction add:
+    if event-reaction is self:
+        broadcast "The bot reacted to its own message!"
+    else:
+        broadcast "%event-user% reacted to a message!"
+```
+
+### Checking Super Reactions
+
+Detect if a reaction is a super reaction:
+
+```applescript
+on reaction add:
+    if event-reaction is super:
+        broadcast "Someone used a super reaction!"
+        # Note: This is the ONLY way to detect super reactions
+```
+
+<Aside type="tip">
+  The reaction add event is the only way to know if a reaction is a super reaction!
+</Aside>
+
+## Finding Emoji Names
+
+To use Unicode emojis, you need their names. Here are common ones:
+
+### Common Emoji Names
+
+```applescript
+# Faces
+reaction "smile"        # 😄
+reaction "joy"          # 😂
+reaction "heart_eyes"   # 😍
+reaction "thinking"     # 🤔
+reaction "sunglasses"   # 😎
+
+# Symbols
+reaction "heart"        # ❤️
+reaction "star"         # ⭐
+reaction "fire"         # 🔥
+reaction "sparkles"     # ✨
+reaction "check"        # ✅
+
+# Actions
+reaction "wave"         # 👋
+reaction "thumbsup"     # 👍
+reaction "thumbsdown"   # 👎
+reaction "clap"         # 👏
+reaction "eyes"         # 👀
+
+# Objects
+reaction "book"         # 📖
+reaction "gear"         # ⚙️
+reaction "bell"         # 🔔
+reaction "crown"        # 👑
+reaction "trophy"       # 🏆
+```
+
+<Aside type="tip">
+  You can also use the Unicode character directly: `reaction "👍"` works the same as `reaction "thumbsup"`
+</Aside>
+
+## Finding Custom Emote IDs
+
+To get the ID of a custom emote:
+
+### In Discord
+
+1. Type the emote in a message
+2. Add a backslash before it: `\:emote_name:`
+3. Send the message
+4. Discord will show: `<:emote_name:123456789012345678>`
+5. The numbers are the emote ID
+
+### In DiSky
+
+```applescript
+# If the bot has access to the emote
+set {_emote} to reaction "EmoteName"
+set {_id} to discord id of {_emote}
+broadcast "Emote ID: %{_id}%"
+```
+
+## Practical Examples
+
+### Welcome Reactions
+
+```applescript
+on guild member join:
+    set {_welcome} to text channel with id "123456789"
+    post "Welcome %mention tag of event-user%!" to {_welcome} and store it in {_msg}
+
+    # Add welcome reactions
+    add reaction "wave" to {_msg}
+    add reaction "tada" to {_msg}
+    add reaction "star" to {_msg}
+```
+
+### Reaction Roles
+
+```applescript
+command /reactionrole:
+    trigger:
+        create a new message and store it in {_msg}:
+            make embed:
+                set title of embed to "Get Your Roles!"
+                set description of embed to "React to get roles:%nl%%nl%🎮 Gaming%nl%🎨 Art%nl%💻 Programming"
+                set embed color of embed to blue
+            add last embed to the embeds of the message
+
+        post {_msg} to event-channel and store it in {_posted}
+
+        # Add reactions
+        add reaction "video_game" to {_posted}
+        add reaction "art" to {_posted}
+        add reaction "computer" to {_posted}
+
+        # Store message ID for tracking
+        set {reactionrole::message} to discord id of {_posted}
+
+on reaction add:
+    if discord id of event-message is {reactionrole::message}:
+        set {_reaction} to event-reaction
+        set {_user} to event-user
+
+        if {_reaction} is reaction "video_game":
+            add role with id "111111111" to roles of {_user}
+        else if {_reaction} is reaction "art":
+            add role with id "222222222" to roles of {_user}
+        else if {_reaction} is reaction "computer":
+            add role with id "333333333" to roles of {_user}
+```
+
+### Interactive Help Menu
+
+```applescript
+command /help:
+    trigger:
+        make embed and store it in {_embed}:
+            set title of embed to "📚 Help Menu"
+            set description of embed to "React with the category you need help with!"
+            add field named "⚙️ Setup" with value "Bot configuration" to fields of embed
+            add field named "📝 Commands" with value "Command list" to fields of embed
+            add field named "🎮 Games" with value "Game commands" to fields of embed
+            set embed color of embed to blue
+
+        reply with {_embed} and store it in {_msg}
+
+        # Add category reactions
+        add reaction "gear" to {_msg}
+        add reaction "pencil" to {_msg}
+        add reaction "video_game" to {_msg}
+
+on reaction add:
+    # Check if it's a help message (you'd store this in practice)
+    set {_reaction} to event-reaction
+
+    if {_reaction} is reaction "gear":
+        # Send setup help (ephemeral if in interaction context)
+        reply with "⚙️ **Setup Help**: Run /config to configure the bot..."
+    else if {_reaction} is reaction "pencil":
+        reply with "📝 **Commands**: /help, /info, /stats..."
+    else if {_reaction} is reaction "video_game":
+        reply with "🎮 **Games**: /rps, /trivia, /guess..."
+```
+
+### Emoji Status Board
+
+```applescript
+command /status:
+    trigger:
+        make embed and store it in {_embed}:
+            set title of embed to "Server Status"
+
+            # Use emojis to show status
+            set {_status} to "🟢 Online"  # Could be 🟡 Degraded or 🔴 Offline
+            add field named "Bot Status" with value {_status} to fields of embed
+
+            set {_api} to "🟢 Operational"
+            add field named "Discord API" with value {_api} to fields of embed
+
+            set embed color of embed to green
+            set timestamp of embed to now
+
+        reply with {_embed}
+```
+
+### Counting Reactions
+
+```applescript
+command /announcement <text>:
+    trigger:
+        post "📢 %arg-1%" to text channel with id "123456789" and store it in {_msg}
+
+        # Add reactions for feedback
+        add reaction "thumbsup" to {_msg}
+        add reaction "thumbsdown" to {_msg}
+        add reaction "eyes" to {_msg}  # Seen it
+
+        # Store for later counting
+        set {announcement::%discord id of {_msg}%} to now
+
+# Later, count reactions
+command /countreactions <text>:
+    trigger:
+        set {_msgId} to arg-1
+        # In practice, you'd retrieve the message and count reactions
+        reply with "Counting reactions for message %{_msgId}%..."
+```
+
+## Best Practices
+
+1. **Use meaningful emojis** - Choose emojis that clearly represent the action or meaning
+2. **Don't overuse** - Too many emojis can be overwhelming
+3. **Prefer IDs for custom emotes** - More reliable than names
+4. **Test custom emotes** - Ensure your bot has access to the emote's guild
+5. **Handle missing emotes** - Custom emotes might be deleted
+6. **Consider accessibility** - Not all users can see custom emotes the same way
+
+## Troubleshooting
+
+### Emoji Not Displaying
+
+**Problem:** Emoji shows as text or doesn't appear.
+
+**Solutions:**
+- Verify the emoji name is correct
+- Try using the Unicode character directly
+- Check if it's a Discord-supported emoji
+
+### Custom Emote Not Working
+
+**Problem:** Custom emote doesn't show or causes errors.
+
+**Solutions:**
+- Verify the bot is in the guild that owns the emote
+- Check the emote ID is correct
+- Ensure the emote wasn't deleted
+- Use the emote ID instead of name
+
+### Reaction Not Added
+
+**Problem:** Bot doesn't add reaction to message.
+
+**Solutions:**
+- Verify bot has "Add Reactions" permission
+- Check the message exists and is accessible
+- Ensure the emote/emoji is valid
+- Try using a standard Unicode emoji first
+
+### Super Reactions Not Working
+
+**Problem:** Bot can't use super reactions.
+
+**Explanation:** Bots cannot add super reactions - this is a Discord limitation. They can only detect and manage existing super reactions.
+
+## Next Steps
+
+- Learn about [Simple Messages](/guides/messages/simple-messages/)
+- Create [Advanced Messages](/guides/messages/advanced-messages/)
+- Build [Interactive Components](/guides/interactions/components/)
+- Upload [Files](/guides/messages/file-uploads/) with messages
