@@ -1,0 +1,41 @@
+:root {
+    --sl-color-accent-high: hsl(36, 100%, 65%);
+    --sl-color-accent: hsl(36, 90%, 60%);
+    --sl-color-accent-low: hsl(36, 85%, 50%);
+    --sl-hero-color: hsla(36, 90%, 60%, 30%);
+}
+
+:root[data-theme='light'] {
+    --sl-color-accent-high: hsl(36, 85%, 45%);
+    --sl-color-accent: hsl(36, 90%, 55%);
+    --sl-color-accent-low: hsl(36, 95%, 70%);
+    --sl-hero-color: hsla(36, 95%, 65%, 25%);
+}
+
+
+.hero {
+    padding: 0;
+}
+
+
+/* Hero style */
+[data-has-hero] .page {
+    height: 100%;
+    background:
+            linear-gradient(215deg, var(--sl-hero-color), transparent 40%),
+            radial-gradient(var(--sl-hero-color), transparent 40%) no-repeat -60vw -40vh / 150vw 200vh,
+            radial-gradient(var(--sl-hero-color), transparent 65%) no-repeat 50% calc(100% + 20rem) /
+			150rem 30rem;
+}
+
+[data-has-hero] header {
+    border-bottom: 1px solid transparent;
+    background-color: transparent;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+
+[data-has-hero] .hero > img {
+    filter: drop-shadow(0 0 3rem var(--sl-hero-color));
+}

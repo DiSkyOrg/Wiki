@@ -1,0 +1,21 @@
+---
+title: Test
+---
+
+import Tabs from "@pelagornis/page/components/Tabs.astro";
+
+<Tabs tabs={[
+  { id: "tab1", label: "First Tab" },
+  { id: "tab2", label: "Second Tab" },
+  { id: "tab3", label: "Third Tab" }
+]} defaultTab="tab1">
+  <div>
+    Content for the first tab.
+  </div>
+  <div>
+    Content for the second tab.
+  </div>
+  <div>
+    Content for the third tab.
+  </div>
+</Tabs>
