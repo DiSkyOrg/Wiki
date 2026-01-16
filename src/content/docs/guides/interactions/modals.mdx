@@ -1,0 +1,507 @@
+---
+title: Modals
+description: Create interactive forms with text inputs and dropdowns for complex user input
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Modals are Discord's native form system, providing a clean popup interface for collecting complex user input. Think of them as interactive forms that appear when users click buttons or run commands.
+
+<Aside type="note">
+  Currently, modals support **text inputs** and **dropdowns**. Discord may add more component types in the future.
+</Aside>
+
+## What Are Modals?
+
+Modals offer a better way to collect detailed input compared to asking users to send multiple messages. They provide:
+
+- **Structured input** - Clear labels and descriptions for each field
+- **Validation** - Min/max length requirements
+- **Better UX** - Everything in one popup instead of back-and-forth messages
+- **Organized data** - Each input has a unique ID
+
+## Modal Structure
+
+A modal consists of:
+
+- **Title** - Displayed at the top of the modal
+- **ID** - Unique identifier to handle responses
+- **Components** - Text inputs and dropdowns wrapped in labels
+
+Each interactive component must be wrapped in a **label**, which provides a title and optional description.
+
+## Creating a Simple Modal
+
+### Basic Text Input Modal
+
+```applescript
+# Create the modal
+set {_modal} to new modal with id "feedback" named "Give Us Feedback"
+
+# Create a short text input
+set {_input} to new short text input with id "title"
+set placeholder of {_input} to "Enter a brief title..."
+set minimum range of {_input} to 3
+set maximum range of {_input} to 50
+set required state of {_input} to true
+
+# Wrap in a label
+set {_label} to new label "Feedback Title" with {_input}
+
+# Add to modal
+add {_label} to rows of {_modal}
+```
+
+<Aside type="tip">
+  Use **short text input** for single lines (like titles) and regular **text input** for multi-line content (like descriptions).
+</Aside>
+
+### Showing the Modal
+
+Modals can only be shown in response to an interaction (slash command, button click, etc.):
+
+<Tabs>
+<TabItem label="Slash Command">
+
+```applescript
+on slash command:
+    if event-string is "feedback":
+        set {_modal} to ... # create modal
+        show {_modal} to the user
+```
+
+</TabItem>
+<TabItem label="Button Click">
+
+```applescript
+on button click:
+    if event-string is "feedback_btn":
+        set {_modal} to ... # create modal
+        show {_modal} to the user
+```
+
+</TabItem>
+</Tabs>
+
+## Text Inputs
+
+Text inputs are the primary way to collect text from users.
+
+### Input Types
+
+<Tabs>
+<TabItem label="Short Input">
+
+Single-line input for brief text:
+
+```applescript
+set {_input} to new short text input with id "username"
+set placeholder of {_input} to "Enter your username"
+```
+
+</TabItem>
+<TabItem label="Long Input">
+
+Multi-line input for longer text:
+
+```applescript
+set {_input} to new text input with id "description"
+set placeholder of {_input} to "Enter detailed description..."
+```
+
+</TabItem>
+</Tabs>
+
+### Input Properties
+
+Configure inputs with these properties:
+
+```applescript
+set {_input} to new short text input with id "title"
+
+# Placeholder text (shown when empty)
+set placeholder of {_input} to "Enter text here..."
+
+# Default value (pre-filled text)
+set value of {_input} to "Default text"
+
+# Length limits (in characters)
+set minimum range of {_input} to 3
+set maximum range of {_input} to 100
+
+# Make it required
+set required state of {_input} to true
+```
+
+<Aside type="caution">
+  Required inputs must be filled before the modal can be submitted. Always provide clear placeholders for required fields.
+</Aside>
+
+### Pre-filled Text with Line Breaks
+
+You can include line breaks in default values:
+
+```applescript
+set {_input} to new text input with id "template" with value "Line 1%nl%Line 2%nl%Line 3"
+```
+
+## Labels
+
+Every text input and dropdown must be wrapped in a label:
+
+```applescript
+# Create the input
+set {_input} to new short text input with id "email"
+
+# Create label with title and optional description
+set {_label} to new label "Email Address" with {_input} with description "We'll never share your email"
+
+# Add to modal
+add {_label} to rows of {_modal}
+```
+
+Labels provide:
+- **Title** - The field name (e.g., "Email Address")
+- **Description** - Optional help text
+- **Component** - The actual input or dropdown
+
+## Dropdowns in Modals
+
+You can add dropdowns to modals for predefined choices:
+
+```applescript
+# Create dropdown
+set {_dropdown} to new dropdown with id "rating"
+set min range of {_dropdown} to 1
+set max range of {_dropdown} to 1
+set placeholder of {_dropdown} to "Select your rating..."
+
+# Add options
+add new option with value "5" named "5 Stars" with description "Excellent!" with reaction "⭐" to options of {_dropdown}
+add new option with value "4" named "4 Stars" with description "Good" with reaction "⭐" to options of {_dropdown}
+add new option with value "3" named "3 Stars" with description "Average" with reaction "⭐" to options of {_dropdown}
+add new option with value "2" named "2 Stars" with description "Below Average" with reaction "⭐" to options of {_dropdown}
+add new option with value "1" named "1 Star" with description "Poor" with reaction "⭐" to options of {_dropdown}
+
+# Make dropdown required
+set required state of {_dropdown} to true
+
+# Wrap in label
+set {_label} to new label "Your Rating" with {_dropdown} with description "How would you rate us?"
+
+# Add to modal
+add {_label} to rows of {_modal}
+```
+
+<Aside type="note" title="Special Case">
+  Dropdowns in modals can be set as **required**, unlike dropdowns in regular messages.
+</Aside>
+
+## Handling Modal Responses
+
+Use the `on modal receive` event to process submissions:
+
+```applescript
+on modal receive:
+    if event-string is "feedback":
+        # Get text input values (returns string)
+        set {_title} to value of text input with id "title"
+        set {_description} to value of text input with id "description"
+
+        # Get dropdown values (always returns array)
+        set {_rating::*} to value of dropdown with id "rating"
+        set {_rating} to first element of {_rating::*}
+
+        # Validate
+        if {_rating} parsed as number is not between 1 and 5:
+            reply with hidden "Invalid rating!"
+            stop
+
+        # Process the feedback
+        reply with "Thanks for your feedback! Rating: %{_rating}% stars"
+```
+
+<Aside type="caution" title="Important">
+  - Text inputs return a **string**
+  - Dropdowns return an **array of strings**, even if only one value is selected
+</Aside>
+
+## Text Display Components
+
+Add informational text that users can't edit:
+
+```applescript
+# Create read-only text display
+set {_info} to new text display "### Important Information%nl%Please read our guidelines before submitting." with unique id 1000
+
+# Add directly to modal (no label needed)
+add {_info} to rows of {_modal}
+```
+
+Text displays:
+- Show Markdown-formatted text
+- Don't require labels
+- Use unique IDs (not string IDs like inputs)
+
+## Complete Example: Feedback Form
+
+```applescript
+command /feedback:
+    trigger:
+        # Create modal
+        set {_modal} to new modal with id "feedback-form" named "Bot Feedback"
+
+        # Info text
+        set {_info} to new text display "### We Value Your Feedback%nl%Help us improve by sharing your thoughts!" with unique id 1000
+        add {_info} to rows of {_modal}
+
+        # Title input
+        set {_titleInput} to new short text input with id "title" with value "Feedback: "
+        set placeholder of {_titleInput} to "Brief title for your feedback"
+        set minimum range of {_titleInput} to 3
+        set maximum range of {_titleInput} to 50
+        set required state of {_titleInput} to true
+
+        set {_titleLabel} to new label "Title" with {_titleInput} with description "Keep it short and descriptive"
+        add {_titleLabel} to rows of {_modal}
+
+        # Description input
+        set {_descInput} to new text input with id "description"
+        set placeholder of {_descInput} to "Detailed feedback..."
+        set minimum range of {_descInput} to 10
+        set maximum range of {_descInput} to 1000
+        set required state of {_descInput} to true
+
+        set {_descLabel} to new label "Details" with {_descInput} with description "The more detail, the better!"
+        add {_descLabel} to rows of {_modal}
+
+        # Rating dropdown
+        set {_dropdown} to new dropdown with id "rating"
+        set min range of {_dropdown} to 1
+        set max range of {_dropdown} to 1
+        set placeholder of {_dropdown} to "Select rating..."
+        set required state of {_dropdown} to true
+
+        add new option with value "5" named "5 Stars" with description "Loved it!" with reaction "⭐" to options of {_dropdown}
+        add new option with value "4" named "4 Stars" with description "Really good" with reaction "⭐" to options of {_dropdown}
+        add new option with value "3" named "3 Stars" with description "It's okay" with reaction "⭐" to options of {_dropdown}
+        add new option with value "2" named "2 Stars" with description "Needs work" with reaction "⭐" to options of {_dropdown}
+        add new option with value "1" named "1 Star" with description "Not good" with reaction "⭐" to options of {_dropdown}
+
+        set {_ratingLabel} to new label "Rating" with {_dropdown} with description "Overall experience?"
+        add {_ratingLabel} to rows of {_modal}
+
+        # Show modal
+        show {_modal} to the user
+
+on modal receive:
+    if event-string is "feedback-form":
+        # Get values
+        set {_title} to value of text input with id "title"
+        set {_desc} to value of text input with id "description"
+        set {_rating::*} to value of dropdown with id "rating"
+        set {_rating} to first element of {_rating::*}
+
+        # Create embed with feedback
+        make embed:
+            set title of embed to "New Feedback: %{_title}%"
+            set description of embed to {_desc}
+            add field named "Rating" with value "%{_rating}% ⭐" to fields of embed
+            add field named "From" with value mention tag of event-user to fields of embed
+            set embed color of embed to blue
+            set timestamp of embed to now
+
+        # Send to feedback channel
+        post last embed to text channel with id "YOUR_FEEDBACK_CHANNEL_ID"
+
+        # Confirm to user
+        reply with hidden "✅ Thank you for your feedback!"
+```
+
+## Practical Examples
+
+### Bug Report Form
+
+```applescript
+command /bugreport:
+    trigger:
+        set {_modal} to new modal with id "bug-report" named "Report a Bug"
+
+        # Bug title
+        set {_titleInput} to new short text input with id "bug_title"
+        set placeholder of {_titleInput} to "Brief description of the bug"
+        set required state of {_titleInput} to true
+        set {_titleLabel} to new label "Bug Title" with {_titleInput}
+        add {_titleLabel} to rows of {_modal}
+
+        # Steps to reproduce
+        set {_stepsInput} to new text input with id "steps"
+        set placeholder of {_stepsInput} to "1. Do this%nl%2. Then do that%nl%3. Bug occurs"
+        set required state of {_stepsInput} to true
+        set {_stepsLabel} to new label "Steps to Reproduce" with {_stepsInput}
+        add {_stepsLabel} to rows of {_modal}
+
+        # Expected behavior
+        set {_expectedInput} to new text input with id "expected"
+        set placeholder of {_expectedInput} to "What should happen?"
+        set required state of {_expectedInput} to true
+        set {_expectedLabel} to new label "Expected Behavior" with {_expectedInput}
+        add {_expectedLabel} to rows of {_modal}
+
+        show {_modal} to the user
+
+on modal receive:
+    if event-string is "bug-report":
+        set {_title} to value of text input with id "bug_title"
+        set {_steps} to value of text input with id "steps"
+        set {_expected} to value of text input with id "expected"
+
+        # Log bug report
+        reply with "✅ Bug report submitted! Tracking ID: #%random integer between 1000 and 9999%"
+```
+
+### Application Form
+
+```applescript
+command /apply:
+    trigger:
+        set {_modal} to new modal with id "staff-app" named "Staff Application"
+
+        # Name
+        set {_nameInput} to new short text input with id "name"
+        set placeholder of {_nameInput} to "Your name or nickname"
+        set required state of {_nameInput} to true
+        set {_nameLabel} to new label "Name" with {_nameInput}
+        add {_nameLabel} to rows of {_modal}
+
+        # Age
+        set {_ageInput} to new short text input with id "age"
+        set placeholder of {_ageInput} to "Your age"
+        set required state of {_ageInput} to true
+        set {_ageLabel} to new label "Age" with {_ageInput}
+        add {_ageLabel} to rows of {_modal}
+
+        # Experience
+        set {_expInput} to new text input with id "experience"
+        set placeholder of {_expInput} to "Tell us about your moderation experience..."
+        set minimum range of {_expInput} to 50
+        set required state of {_expInput} to true
+        set {_expLabel} to new label "Experience" with {_expInput} with description "Minimum 50 characters"
+        add {_expLabel} to rows of {_modal}
+
+        # Why join
+        set {_whyInput} to new text input with id "why"
+        set placeholder of {_whyInput} to "Why do you want to join our team?"
+        set minimum range of {_whyInput} to 50
+        set required state of {_whyInput} to true
+        set {_whyLabel} to new label "Why Join?" with {_whyInput} with description "Minimum 50 characters"
+        add {_whyLabel} to rows of {_modal}
+
+        show {_modal} to the user
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Clear Labels**
+
+   Use descriptive labels and helpful descriptions. Users should understand what to enter.
+
+2. **Appropriate Input Types**
+
+   Use short inputs for single lines (names, titles) and long inputs for detailed text (descriptions, reasons).
+
+3. **Set Length Limits**
+
+   Use min/max ranges to ensure quality input and prevent spam.
+
+4. **Mark Required Fields**
+
+   Make important fields required, but don't require everything unnecessarily.
+
+5. **Provide Placeholders**
+
+   Show examples or hints in placeholders to guide users.
+
+6. **Validate Input**
+
+   Check the submitted data for validity (numbers in range, correct format, etc.).
+
+7. **Give Feedback**
+
+   Always respond to modal submissions so users know their input was received.
+
+</Steps>
+
+## Modal Limits
+
+- **Title**: 1-45 characters
+- **Text input label**: 1-45 characters
+- **Text input placeholder**: 1-100 characters
+- **Text input min/max**: 0-4000 characters
+- **Components per modal**: 5 maximum
+- **Dropdown options**: 25 maximum
+
+## Troubleshooting
+
+### Modal Not Showing
+
+**Problem:** Modal doesn't appear when triggered.
+
+**Solutions:**
+- Ensure you're calling `show {_modal} to the user` from an interaction event
+- Verify the modal structure is complete (has title and ID)
+- Check that all components are wrapped in labels
+- Confirm the modal has at least one component
+
+### Can't Get Input Values
+
+**Problem:** Values are null or empty in modal receive event.
+
+**Solutions:**
+- Verify IDs match exactly between creation and retrieval
+- For dropdowns, remember values are always arrays
+- Check that inputs were marked as required if they must have values
+- Use `value of text input with id "..."` not just `value of "..."`
+
+### "This interaction failed"
+
+**Problem:** Discord shows error message.
+
+**Solutions:**
+- Reply within 3 seconds of modal submission
+- Check for errors in your modal receive handler
+- Ensure you're using correct value retrieval methods
+- Verify event-string matches the modal ID
+
+### Cannot Show Modal After Modal
+
+**Problem:** Want to show another modal after the first one is submitted.
+
+**Explanation:** You cannot show a modal directly in the `on modal receive` event.
+
+**Solution:** Use an intermediate interaction (button or dropdown) to show the next modal:
+
+```applescript
+on modal receive:
+    if event-string is "first-modal":
+        # Process first modal
+
+        # Create button to open next modal
+        set {_btn} to new primary button with id "open_next" named "Continue"
+        reply with rich components {_btn}
+
+on button click:
+    if event-string is "open_next":
+        # Now show the second modal
+        set {_modal2} to ... # create second modal
+        show {_modal2} to the user
+```
+
+## Next Steps
+
+- Create [Buttons and Dropdowns](/guides/interactions/components/)
+- Learn about [Slash Commands](/guides/interactions/slash-commands/)
+- Understand [Interactions Overview](/guides/interactions/overview/)
+- Build [Advanced Messages](/guides/messages/advanced-messages/)

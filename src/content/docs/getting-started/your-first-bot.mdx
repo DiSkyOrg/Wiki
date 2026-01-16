@@ -1,0 +1,232 @@
+---
+title: Your First Bot
+description: Create and load your first Discord bot with DiSky
+---
+
+import { Steps, Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+This guide will walk you through creating a Discord bot application and loading it with DiSky.
+
+## Part 1: Creating the Discord Bot
+
+First, you need to create a bot application on Discord's Developer Portal.
+
+<Steps>
+
+1. **Open the Developer Portal**
+
+   Go to [Discord's Application Dashboard](https://discord.com/developers/applications) and log in with your Discord account.
+
+2. **Create a New Application**
+
+   Click the "New Application" button in the top right corner. Give your application a name and click "Create".
+
+3. **Create the Bot User**
+
+   - Navigate to the "Bot" section in the left sidebar
+   - Click "Add Bot" or "Create Bot"
+   - Confirm by clicking "Yes, do it!"
+
+4. **Copy Your Bot Token**
+
+   Under the "Token" section, click "Reset Token" if needed, then "Copy" to copy your bot token.
+
+   <Aside type="danger" title="Keep Your Token Private!">
+     Your bot token is like a password. **Never share it publicly** or commit it to GitHub. Anyone with your token can control your bot.
+   </Aside>
+
+5. **Enable Privileged Gateway Intents**
+
+   Scroll down to "Privileged Gateway Intents" and enable:
+   - Server Members Intent
+   - Message Content Intent
+   - Presence Intent (optional)
+
+   ![Gateway Intents](/images/faq-intents.png)
+
+   <Aside type="caution">
+     These intents are required for most bot features. Without them, your bot won't be able to read message content or access member information.
+   </Aside>
+
+6. **Invite Your Bot**
+
+   - Go to the "OAuth2" section, then "URL Generator"
+   - Select scopes: `bot` and `applications.commands`
+   - Select bot permissions (or select "Administrator" for full access)
+   - Copy the generated URL and open it in your browser
+   - Select a server and authorize
+
+</Steps>
+
+## Part 2: Loading the Bot with DiSky
+
+Now that your bot is created and invited, let's load it using DiSky.
+
+### Understanding Structures
+
+<Aside type="tip" title="What are structures?">
+  DiSky uses **structures**, which are similar to Skript events but act as their own trigger. They don't need to be inside a command or event and are loaded automatically when the script reloads.
+
+  Structures have two types of entries:
+  - **Value entries**: Simple `key: value` pairs (only global variables work here)
+  - **Section entries**: Code blocks that execute when triggered
+</Aside>
+
+### Basic Bot Structure
+
+Create a new file in `plugins/Skript/scripts/` (e.g., `bot.sk`) and add:
+
+```applescript
+define new bot named "MyBot":
+    # Your bot token from the Developer Portal
+    token: "YOUR_BOT_TOKEN_HERE"
+
+    # Gateway intents (what events your bot can receive)
+    intents: default intents
+
+    # Advanced options
+    policy: all
+    cache flags: default cache
+    compression: none
+
+    # Auto reconnect if disconnected
+    auto reconnect: true
+
+    # Don't reload connection on script reload
+    force reload: false
+
+    # Code to run when bot is ready
+    on ready:
+        send "&a[DiSky] &2%event-bot% is now online!" to console
+```
+
+<Aside type="caution">
+  Replace `YOUR_BOT_TOKEN_HERE` with the actual token you copied from Discord.
+</Aside>
+
+### Structure Breakdown
+
+Let's understand each part:
+
+| Property | Description |
+|----------|-------------|
+| `token` | Your bot's secret token from Discord Developer Portal |
+| `intents` | Which events your bot can receive ([learn more](/basics/gateway-intents/)) |
+| `policy` | Cache policy for Discord entities ([learn more](/basics/cache-policy/)) |
+| `cache flags` | Which entities to cache ([learn more](/basics/cache-policy/)) |
+| `compression` | Gateway compression (`none` or `zlib`) |
+| `auto reconnect` | Whether to reconnect automatically if disconnected |
+| `force reload` | Whether to reload the connection on script reload (keep as `false`) |
+
+### Ready Sections
+
+The bot structure supports three event sections:
+
+#### `on ready`
+
+Runs once when the bot is fully loaded (including all guilds):
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+    intents: default intents
+
+    on ready:
+        send "&a%event-bot% is ready!" to console
+        # This is where you register global slash commands
+```
+
+**Event value**: `event-bot` - the bot instance that just loaded
+
+#### `on guild ready`
+
+Runs when each guild is fully loaded (including all members):
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+    intents: default intents
+
+    on guild ready:
+        send "&a%event-bot% loaded guild &e%event-guild%" to console
+        # This is where you register guild-specific slash commands
+```
+
+**Event values**:
+- `event-bot` - the bot instance
+- `event-guild` - the guild that just loaded
+
+#### `on shutdown`
+
+Runs when the bot is about to disconnect:
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+    intents: default intents
+
+    on shutdown:
+        send "&c%event-bot% is shutting down!" to console
+```
+
+### Complete Example
+
+Here's a complete example with all sections:
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN_HERE"
+    intents: default intents
+    policy: all
+    cache flags: default cache
+    auto reconnect: true
+    force reload: false
+
+    on ready:
+        send "&a[DiSky] %event-bot% is online!" to console
+        send "&7Loaded &e%size of guilds of event-bot% &7guilds" to console
+
+    on guild ready:
+        send "&7Guild &e%event-guild% &7is ready!" to console
+
+    on shutdown:
+        send "&c[DiSky] %event-bot% is shutting down..." to console
+```
+
+### Testing Your Bot
+
+<Steps>
+
+1. Save your script file
+2. Reload your scripts with `/sk reload <filename>` or restart the server
+3. Check the console for the "is online!" message
+4. Your bot should now appear online in Discord!
+
+</Steps>
+
+## Troubleshooting
+
+<Aside type="caution" title="CloseCode 4014 Error">
+  If you get a "CloseCode 4014" or "Disallowed intents" error, make sure you enabled the required intents in the Discord Developer Portal (see Part 1, Step 5).
+</Aside>
+
+<Aside type="caution" title="Bot Doesn't Come Online">
+  - Double-check your token is correct
+  - Ensure you enabled the required intents in the Developer Portal
+  - Check the console for error messages
+  - Make sure you're using Skript 2.10+
+</Aside>
+
+## Next Steps
+
+Congratulations! Your bot is now online. Let's make it do something useful.
+
+:::tip[Next: Send Messages]
+Learn how to send messages with your bot in the [Simple Messages](/guides/messages/simple-messages/) guide.
+:::
+
+## Additional Resources
+
+- [Gateway Intents](/basics/gateway-intents/) - Learn more about intents
+- [Cache Policy](/basics/cache-policy/) - Optimize your bot's performance
+- [Getting Help](/getting-started/getting-help/) - Where to get support

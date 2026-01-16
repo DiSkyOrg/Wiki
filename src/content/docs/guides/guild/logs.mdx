@@ -1,0 +1,499 @@
+---
+title: Audit Logs
+description: Track and monitor all moderation actions with Discord's audit log system
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Audit logs are Discord's built-in system for tracking all administrative and moderation actions in your server. With DiSky, you can retrieve historical logs and listen to new actions in real-time.
+
+<Aside type="note" title="Available since v4.11.0">
+  Audit log features were introduced in DiSky v4.11.0.
+</Aside>
+
+## What Are Audit Logs?
+
+Audit logs record important actions that happen in your server:
+
+- Member bans and kicks
+- Message deletions
+- Role changes
+- Channel modifications
+- Server settings updates
+- And much more
+
+Each log entry contains information about what happened, who did it, and when.
+
+## Required Setup
+
+Before working with audit logs, ensure your bot has the necessary permissions and intents:
+
+<Steps>
+
+1. **Enable Gateway Intent**
+
+   Add the `GUILD_MODERATION` intent to your bot:
+
+   ```applescript
+   define new bot named "MyBot":
+       intents: default intents, guild moderation intent
+   ```
+
+2. **Grant Bot Permission**
+
+   Your bot needs the `VIEW_AUDIT_LOGS` permission in Discord:
+   - Go to Server Settings > Roles
+   - Find your bot's role
+   - Enable "View Audit Log"
+
+</Steps>
+
+<Aside type="caution">
+  Without both the intent and permission, you won't be able to access audit logs.
+</Aside>
+
+## Log Entry Properties
+
+Each audit log entry contains:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `logged author` | User | Who performed the action |
+| `logged guild` | Guild | Where it happened |
+| `logged id` | Text | Unique entry ID |
+| `logged action` | Text | What action was taken |
+| `logged reason` | Text | Why it was done (if provided) |
+
+## Fetching Audit Logs
+
+### Retrieve All Recent Logs
+
+Get the most recent audit logs from a guild:
+
+```applescript
+command /auditlogs:
+    trigger:
+        set {_guild} to event-guild
+
+        # Fetch logs
+        retrieve audit logs from {_guild} and store them in {_logs::*}
+
+        # Display count
+        reply with "Found %size of {_logs::*}% recent audit log entries"
+```
+
+### Loop Through Logs
+
+Process each log entry:
+
+```applescript
+command /recentactions:
+    trigger:
+        retrieve audit logs from event-guild and store them in {_logs::*}
+
+        make embed:
+            set title of embed to "Recent Audit Log Actions"
+            set embed color of embed to blue
+
+            loop {_logs::*}:
+                set {_entry} to loop-value
+
+                # Get log details
+                set {_author} to logged author of {_entry}
+                set {_action} to logged action of {_entry}
+                set {_reason} to logged reason of {_entry}
+
+                # Add to embed
+                if {_reason} is set:
+                    set {_text} to "%{_action}% - Reason: %{_reason}%"
+                else:
+                    set {_text} to "%{_action}% - No reason provided"
+
+                add field named mention tag of {_author} with value {_text} to fields of embed
+
+                # Limit to first 10 entries
+                if loop-index is 10:
+                    stop loop
+
+        reply with last embed
+```
+
+## Listening to New Logs
+
+Instead of fetching logs manually, listen for new audit log entries in real-time:
+
+```applescript
+on guild log create:
+    # Get the log entry
+    set {_entry} to event-logentry
+
+    # Extract information
+    set {_author} to logged author of {_entry}
+    set {_guild} to logged guild of {_entry}
+    set {_action} to logged action of {_entry}
+    set {_reason} to logged reason of {_entry}
+    set {_id} to logged id of {_entry}
+
+    # Send notification to mod channel
+    set {_modChannel} to text channel with id "MOD_CHANNEL_ID"
+
+    make embed:
+        set title of embed to "🔍 Audit Log: %{_action}%"
+        add field named "Moderator" with value mention tag of {_author} to fields of embed
+
+        if {_reason} is set:
+            add field named "Reason" with value {_reason} to fields of embed
+        else:
+            add field named "Reason" with value "No reason provided" to fields of embed
+
+        add field named "Log ID" with value {_id} to fields of embed
+        set timestamp of embed to now
+        set embed color of embed to orange
+
+    post last embed to {_modChannel}
+```
+
+<Aside type="tip">
+  The `on guild log create` event fires whenever a new audit log entry is created, allowing real-time monitoring.
+</Aside>
+
+## Practical Examples
+
+### Ban Logger
+
+Track all bans with details:
+
+```applescript
+on guild log create:
+    set {_action} to logged action of event-logentry
+
+    if {_action} contains "BAN":
+        set {_moderator} to logged author of event-logentry
+        set {_reason} to logged reason of event-logentry
+        set {_guild} to logged guild of event-logentry
+
+        # Send to ban log channel
+        set {_logChannel} to text channel with id "BAN_LOG_CHANNEL_ID"
+
+        make embed:
+            set title of embed to "🔨 Member Banned"
+            add field named "Moderator" with value mention tag of {_moderator} to fields of embed
+
+            if {_reason} is set:
+                add field named "Reason" with value {_reason} to fields of embed
+            else:
+                add field named "Reason" with value "No reason provided" to fields of embed
+
+            set embed color of embed to red
+            set timestamp of embed to now
+            set footer of embed to "Guild: %discord name of {_guild}%"
+
+        post last embed to {_logChannel}
+```
+
+### Message Deletion Tracker
+
+Monitor message deletions:
+
+```applescript
+on guild log create:
+    set {_action} to logged action of event-logentry
+
+    if {_action} contains "DELETE" and {_action} contains "MESSAGE":
+        set {_moderator} to logged author of event-logentry
+        set {_reason} to logged reason of event-logentry
+
+        set {_logChannel} to text channel with id "MESSAGE_LOG_CHANNEL_ID"
+
+        make embed:
+            set title of embed to "🗑️ Message Deleted by Moderator"
+            add field named "Deleted by" with value mention tag of {_moderator} to fields of embed
+            add field named "Reason" with value {_reason} ? "Not specified" to fields of embed
+            set embed color of embed to orange
+            set timestamp of embed to now
+
+        post last embed to {_logChannel}
+```
+
+### Role Change Monitor
+
+Track role assignments and removals:
+
+```applescript
+on guild log create:
+    set {_action} to logged action of event-logentry
+
+    if {_action} contains "ROLE":
+        set {_moderator} to logged author of event-logentry
+        set {_reason} to logged reason of event-logentry
+        set {_guild} to logged guild of event-logentry
+
+        set {_logChannel} to text channel with id "ROLE_LOG_CHANNEL_ID"
+
+        make embed:
+            set title of embed to "👑 Role Modified"
+            set description of embed to "Action: %{_action}%"
+            add field named "Moderator" with value mention tag of {_moderator} to fields of embed
+
+            if {_reason} is set:
+                add field named "Reason" with value {_reason} to fields of embed
+
+            set embed color of embed to purple
+            set timestamp of embed to now
+
+        post last embed to {_logChannel}
+```
+
+### Complete Audit Log System
+
+Comprehensive logging for all actions:
+
+```applescript
+on guild log create:
+    set {_entry} to event-logentry
+    set {_action} to logged action of {_entry}
+    set {_author} to logged author of {_entry}
+    set {_reason} to logged reason of {_entry}
+    set {_guild} to logged guild of {_entry}
+
+    # Determine log channel and color based on action type
+    if {_action} contains "BAN" or {_action} contains "KICK":
+        set {_channel} to "BAN_LOG_CHANNEL"
+        set {_color} to red
+        set {_emoji} to "🔨"
+
+    else if {_action} contains "DELETE":
+        set {_channel} to "DELETE_LOG_CHANNEL"
+        set {_color} to orange
+        set {_emoji} to "🗑️"
+
+    else if {_action} contains "ROLE":
+        set {_channel} to "ROLE_LOG_CHANNEL"
+        set {_color} to purple
+        set {_emoji} to "👑"
+
+    else if {_action} contains "CHANNEL":
+        set {_channel} to "CHANNEL_LOG_CHANNEL"
+        set {_color} to blue
+        set {_emoji} to "📝"
+
+    else:
+        set {_channel} to "GENERAL_LOG_CHANNEL"
+        set {_color} to gray
+        set {_emoji} to "📋"
+
+    # Get the log channel
+    set {_logChannel} to text channel with id {_channel}
+
+    if {_logChannel} is not set:
+        stop
+
+    # Create log embed
+    make embed:
+        set title of embed to "%{_emoji}% %{_action}%"
+        add field named "Moderator" with value mention tag of {_author} to fields of embed
+
+        if {_reason} is set:
+            add field named "Reason" with value {_reason} to fields of embed
+        else:
+            add field named "Reason" with value "No reason provided" to fields of embed
+
+        add field named "Log ID" with value logged id of {_entry} to fields of embed
+        set embed color of embed to {_color}
+        set timestamp of embed to now
+        set footer of embed to discord name of {_guild}
+
+    post last embed to {_logChannel}
+```
+
+### Audit Log Search
+
+Search for specific actions:
+
+```applescript
+command /searchlogs <text>:
+    trigger:
+        set {_query} to arg-1
+        retrieve audit logs from event-guild and store them in {_logs::*}
+
+        clear {_matches::*}
+
+        loop {_logs::*}:
+            set {_action} to logged action of loop-value
+
+            if {_action} contains {_query}:
+                add loop-value to {_matches::*}
+
+        if {_matches::*} is not set:
+            reply with "No logs found matching '%{_query}%'"
+            stop
+
+        make embed:
+            set title of embed to "Search Results: %{_query}%"
+            set description of embed to "Found %size of {_matches::*}% matching entries"
+            set embed color of embed to blue
+
+            loop {_matches::*}:
+                set {_author} to logged author of loop-value
+                set {_action} to logged action of loop-value
+
+                add field named "%{_action}%" with value "By: %mention tag of {_author}%" to fields of embed
+
+                if loop-index is 10:
+                    stop loop
+
+        reply with last embed
+```
+
+### Moderation Statistics
+
+Track moderation activity:
+
+```applescript
+command /modstats:
+    trigger:
+        retrieve audit logs from event-guild and store them in {_logs::*}
+
+        # Count actions per moderator
+        clear {_modCounts::*}
+        clear {_actionCounts::*}
+
+        loop {_logs::*}:
+            set {_author} to logged author of loop-value
+            set {_authorId} to discord id of {_author}
+            set {_action} to logged action of loop-value
+
+            add 1 to {_modCounts::%{_authorId}%}
+            add 1 to {_actionCounts::%{_action}%}
+
+        # Build statistics
+        make embed:
+            set title of embed to "📊 Moderation Statistics"
+            set description of embed to "Recent activity breakdown"
+
+            # Top moderators
+            clear {_modList::*}
+            loop {_modCounts::*}:
+                set {_mod} to user with id loop-index
+                add "%mention tag of {_mod}%: %loop-value% actions" to {_modList::*}
+
+            if size of {_modList::*} > 0:
+                add field named "Most Active Moderators" with value join first 5 elements of {_modList::*} with nl to fields of embed
+
+            # Action breakdown
+            clear {_actionList::*}
+            loop {_actionCounts::*}:
+                add "%loop-index%: %loop-value%" to {_actionList::*}
+
+            if size of {_actionList::*} > 0:
+                add field named "Actions Taken" with value join first 5 elements of {_actionList::*} with nl to fields of embed
+
+            set embed color of embed to green
+            set timestamp of embed to now
+
+        reply with last embed
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Dedicated Log Channels**
+
+   Create separate channels for different log types (bans, deletions, role changes).
+
+2. **Require Reasons**
+
+   Encourage moderators to always provide reasons for actions.
+
+3. **Regular Review**
+
+   Check audit logs regularly to ensure proper moderation.
+
+4. **Alert on Important Actions**
+
+   Notify admin roles when critical actions occur (bans, server setting changes).
+
+5. **Archive Old Logs**
+
+   Discord keeps audit logs for 45 days. Consider backing up important entries.
+
+6. **Protect Log Channels**
+
+   Make log channels visible only to moderators and admins.
+
+7. **Monitor Moderators**
+
+   Track moderator activity to ensure consistent, fair moderation.
+
+</Steps>
+
+## Common Action Types
+
+Audit logs track many action types:
+
+- `MEMBER_BAN_ADD` - Member banned
+- `MEMBER_BAN_REMOVE` - Member unbanned
+- `MEMBER_KICK` - Member kicked
+- `MESSAGE_DELETE` - Message deleted
+- `MESSAGE_BULK_DELETE` - Multiple messages deleted
+- `ROLE_CREATE` - Role created
+- `ROLE_UPDATE` - Role modified
+- `ROLE_DELETE` - Role deleted
+- `CHANNEL_CREATE` - Channel created
+- `CHANNEL_UPDATE` - Channel modified
+- `CHANNEL_DELETE` - Channel deleted
+- And many more...
+
+## Troubleshooting
+
+### No Logs Appearing
+
+**Problem:** Audit logs are empty or not showing.
+
+**Solutions:**
+- Verify bot has `GUILD_MODERATION` intent enabled
+- Check bot has `VIEW_AUDIT_LOGS` permission
+- Ensure logs exist (Discord keeps them for 45 days)
+- Confirm you're checking the correct guild
+
+### Event Not Triggering
+
+**Problem:** `on guild log create` event doesn't fire.
+
+**Solutions:**
+- Enable `GUILD_MODERATION` intent in bot structure
+- Grant `VIEW_AUDIT_LOGS` permission to bot
+- Reload your script after adding the intent
+- Verify the action you're testing creates an audit log
+
+### Missing Reasons
+
+**Problem:** Logged reason is always null.
+
+**Explanation:** Many actions don't include reasons. Only actions taken through Discord's UI or API with explicit reasons will have this field populated.
+
+**Solution:** Encourage moderators to provide reasons when performing actions.
+
+### Wrong Author
+
+**Problem:** Logged author shows the wrong user.
+
+**Explanation:** The logged author is whoever performed the action (bot or user). For bot actions triggered by users, the bot is the author.
+
+**Solution:** Store the original user separately if you need to track who initiated a bot action.
+
+## Audit Log Limits
+
+- **Retention**: Discord keeps audit logs for 45 days
+- **Fetch limit**: Up to 100 entries per request by default
+- **Rate limits**: Standard API rate limits apply
+- **Permission required**: `VIEW_AUDIT_LOGS`
+- **Intent required**: `GUILD_MODERATION`
+
+## Next Steps
+
+- Set up [AutoMod](/guides/guild/automod/) for automatic moderation
+- Create [Forum Channels](/guides/guild/forums/) for organized discussions
+- Configure [Welcome Screens](/guides/guild/welcome-screen/) for new members
+- Learn about [Error Handling](/concepts/error-handling/) for robust logging

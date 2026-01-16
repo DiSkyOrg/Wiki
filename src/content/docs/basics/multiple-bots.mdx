@@ -1,0 +1,342 @@
+---
+title: Multiple Bots
+description: Run multiple Discord bots from a single server
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+DiSky allows you to run multiple bot instances on a single Minecraft server. This guide explains how to set up and manage multiple bots.
+
+## Setting Up Multiple Bots
+
+Adding another bot is straightforward - just define another bot structure with a different name and token.
+
+<Steps>
+
+1. **Copy your existing bot definition**
+
+   ```applescript
+   define new bot named "Bot1":
+       token: "FIRST_BOT_TOKEN"
+       intents: default intents
+
+       on ready:
+           send "Bot1 is ready!" to console
+   ```
+
+2. **Create a second bot with a different name and token**
+
+   ```applescript
+   define new bot named "Bot2":
+       token: "SECOND_BOT_TOKEN"
+       intents: default intents
+
+       on ready:
+           send "Bot2 is ready!" to console
+   ```
+
+3. **Restart your server**
+
+   Both bots will connect simultaneously!
+
+</Steps>
+
+<Aside type="tip">
+  Each bot needs a unique name in DiSky and a unique token from Discord.
+</Aside>
+
+## Event Handling with Multiple Bots
+
+When you have multiple bots, events fire **once for each bot**.
+
+### Example Scenario
+
+You have 2 bots (Bot1 and Bot2) in the same Discord server. A user sends a message.
+
+**What happens:**
+- The `on message receive` event fires **twice**
+- Once with `event-bot` as Bot1
+- Once with `event-bot` as Bot2
+
+```applescript
+on message receive:
+    # This code runs twice - once per bot!
+    send "Received message from %event-user%!" to console
+```
+
+## Handling Conflicts
+
+Since events fire for all bots, you need to specify which bot should handle what.
+
+### Method 1: Check the Bot (Recommended)
+
+Check which bot triggered the event and handle accordingly:
+
+```applescript
+on message receive:
+    # Only respond with Bot1
+    if event-bot is bot named "Bot1":
+        reply with "Hello from Bot1!"
+
+    # Only respond with Bot2
+    if event-bot is bot named "Bot2":
+        reply with "Hello from Bot2!"
+```
+
+This is the **most common** approach because each bot usually has different functionality.
+
+### Method 2: Execute with Specific Bot
+
+Use the `execute ... with bot` syntax to specify which bot executes an effect:
+
+```applescript
+on message receive:
+    # Respond with a specific bot regardless of which bot received the event
+    execute reply with "Hello!" with bot named "Bot1"
+```
+
+This is useful when you want a specific bot to always handle certain actions.
+
+## Complete Examples
+
+### Different Bots, Different Roles
+
+```applescript
+# Moderation Bot
+define new bot named "ModBot":
+    token: "MOD_BOT_TOKEN"
+    intents: default intents, guild members, message content
+
+    on ready:
+        set presence of event-bot to watching "for rule breakers"
+
+# Music Bot
+define new bot named "MusicBot":
+    token: "MUSIC_BOT_TOKEN"
+    intents: default intents, guild voice states
+
+    on ready:
+        set presence of event-bot to listening "music commands"
+
+# Handle events separately
+on message receive:
+    # ModBot handles moderation
+    if event-bot is bot named "ModBot":
+        if message contains "badword":
+            delete event-message
+            send "Message deleted!" to event-channel
+
+    # MusicBot handles music commands
+    if event-bot is bot named "MusicBot":
+        if message is "!play":
+            reply with "Starting music..."
+```
+
+### Development vs Production Bot
+
+```applescript
+# Production Bot
+define new bot named "ProductionBot":
+    token: "PRODUCTION_TOKEN"
+    intents: all intents
+
+    on ready:
+        send "&a[Production] Bot is ready!" to console
+        set presence of event-bot to playing "Production Mode"
+
+# Development Bot (for testing)
+define new bot named "DevBot":
+    token: "DEV_TOKEN"
+    intents: all intents
+
+    on ready:
+        send "&e[Dev] Bot is ready!" to console
+        set presence of event-bot to playing "Development Mode"
+
+# Only respond in dev mode if user is developer
+on message receive:
+    if event-bot is bot named "DevBot":
+        if event-user is not developer:
+            stop
+        reply with "Dev mode response!"
+
+    if event-bot is bot named "ProductionBot":
+        reply with "Production response!"
+```
+
+### Multi-Purpose Bot Farm
+
+```applescript
+# Separate bot for each server
+define new bot named "ServerABot":
+    token: "SERVER_A_TOKEN"
+    intents: default intents
+
+define new bot named "ServerBBot":
+    token: "SERVER_B_TOKEN"
+    intents: default intents
+
+define new bot named "ServerCBot":
+    token: "SERVER_C_TOKEN"
+    intents: default intents
+
+# Route commands to the correct bot
+on slash command:
+    set {_botName} to "ServerABot"
+    if event-guild's id is "SERVER_B_ID":
+        set {_botName} to "ServerBBot"
+    else if event-guild's id is "SERVER_C_ID":
+        set {_botName} to "ServerCBot"
+
+    execute reply with "Command from %{_botName}%!" with bot named {_botName}
+```
+
+## Using Specific Bot Syntax
+
+Many DiSky effects support the `with bot` clause:
+
+```applescript
+# Reply with specific bot
+execute reply with "Hello!" with bot named "Bot1"
+
+# Post to channel with specific bot
+execute post "Message" to {_channel} with bot named "Bot2"
+
+# Update message with specific bot
+execute edit {_message} to show "Updated!" with bot named "Bot1"
+```
+
+This ensures the action is performed by the specified bot, regardless of which bot is in the current event context.
+
+## Best Practices
+
+### 1. Give Bots Clear Names
+
+```applescript
+# ✅ Good - clear purpose
+define new bot named "ModerationBot":
+define new bot named "MusicBot":
+
+# ❌ Bad - unclear
+define new bot named "Bot1":
+define new bot named "MyBot":
+```
+
+### 2. Always Check Bot in Events
+
+```applescript
+# ✅ Good - handles each bot separately
+on message receive:
+    if event-bot is bot named "ModBot":
+        # Moderation logic
+    else if event-bot is bot named "MusicBot":
+        # Music logic
+
+# ❌ Bad - all bots respond
+on message receive:
+    reply with "Hello!"  # Both bots will respond!
+```
+
+### 3. Separate Bot Configuration
+
+```applescript
+# ✅ Good - different configs for different purposes
+define new bot named "ModBot":
+    intents: guild members, message content
+    policy: all
+
+define new bot named "MusicBot":
+    intents: guild voice states
+    policy: voice
+
+# ❌ Bad - same config for different purposes (wasteful)
+define new bot named "ModBot":
+    intents: all intents
+    policy: all
+```
+
+### 4. Use Different Presences
+
+Help users distinguish between your bots:
+
+```applescript
+define new bot named "ModBot":
+    on ready:
+        set presence of event-bot to watching "for rule breakers"
+
+define new bot named "MusicBot":
+    on ready:
+        set presence of event-bot to listening "music requests"
+```
+
+## Troubleshooting
+
+### Both Bots Respond to Events
+
+You forgot to check which bot triggered the event:
+
+```applescript
+# Add this check
+on message receive:
+    if event-bot is not bot named "DesiredBot":
+        stop
+    # Your code here
+```
+
+### Wrong Bot Performs Action
+
+Use the `with bot` clause:
+
+```applescript
+execute reply with "Message" with bot named "CorrectBot"
+```
+
+### Memory Usage Too High
+
+Multiple bots use more memory. Optimize each bot's configuration:
+
+```applescript
+# Only cache what each bot needs
+define new bot named "CommandBot":
+    policy: none  # Commands don't need member cache
+    cache flags: none
+
+define new bot named "MemberBot":
+    policy: all  # This one needs members
+    cache flags: default cache
+```
+
+### Events Not Firing
+
+Make sure each bot has the required intents:
+
+```applescript
+define new bot named "Bot1":
+    intents: guild members, message content  # Required for member events
+
+define new bot named "Bot2":
+    intents: guild voice states  # Required for voice events
+```
+
+## When to Use Multiple Bots
+
+**Good use cases:**
+- Different bots for different purposes (moderation, music, utility)
+- Development vs production environments
+- Separate bots per server/community
+- Load distribution across multiple bots
+
+**Bad use cases:**
+- Running multiple instances of the same bot (use clustering instead)
+- Avoiding rate limits (this violates Discord ToS)
+- Just because you can (unnecessary complexity)
+
+<Aside type="caution">
+  Only run multiple bots if you have a legitimate reason. Multiple bots = more complexity and resource usage.
+</Aside>
+
+## Next Steps
+
+- Send messages with [Simple Messages](/guides/messages/simple-messages/)
+- Create interactions with [Components](/guides/interactions/components/)
+- Learn about [Data Structures](/concepts/data-structures/)

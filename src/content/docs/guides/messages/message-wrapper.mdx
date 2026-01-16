@@ -1,0 +1,433 @@
+---
+title: Message Caching
+description: Track deleted and edited messages with DiSky's message caching system
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+DiSky's message caching system allows you to track information about deleted and edited messages. This is crucial for moderation, logging, and maintaining accountability in your Discord server.
+
+<Aside type="caution" title="Important Disclaimer">
+  This system caches messages in memory to preserve information about deleted and edited messages. **This is not provided by Discord** - everything is self-handled by DiSky.
+
+  Even with correct settings, **some factors can prevent this system from working** (Discord API issues, cache limitations, server restarts, etc.).
+</Aside>
+
+## How It Works
+
+DiSky caches **received** messages in memory while your bot is running. This means:
+
+- Only messages sent while your bot is online are cached
+- Messages sent before the bot started are not cached
+- Cache is cleared when the bot restarts
+- Memory usage increases with cached messages
+
+<Aside type="note">
+  The cache is temporary and stored in RAM. Restarting your server clears all cached message data.
+</Aside>
+
+## Edited Messages
+
+When a message is edited, DiSky updates its cache with both the old and new content.
+
+### How Editing Works
+
+1. User sends a message
+2. DiSky caches the message content
+3. User edits the message
+4. DiSky stores the old content and updates with new content
+5. You can access both versions in the `on message edit` event
+
+### Using the Edit Event
+
+```applescript
+on message edit:
+    # event-string contains the OLD content
+    # event-message contains the NEW/current content
+
+    set {_old} to event-string
+    set {_new} to event-message
+
+    # Log to moderation channel
+    set {_logChannel} to text channel with id "MOD_LOG_CHANNEL_ID"
+
+    make embed:
+        set title of embed to "📝 Message Edited"
+        add field named "Author" with value mention tag of author of {_new} to fields of embed
+        add field named "Channel" with value mention tag of message channel of {_new} to fields of embed
+        add field named "Before" with value {_old} to fields of embed
+        add field named "After" with value {_new} to fields of embed
+        add field named "Jump" with value "[Go to message](%jump url of {_new}%)" to fields of embed
+        set embed color of embed to orange
+        set timestamp of embed to now
+
+    post last embed to {_logChannel}
+```
+
+<Aside type="tip">
+  The message still exists on Discord after editing, so `event-message` returns the full, updated message object.
+</Aside>
+
+## Deleted Messages
+
+When a message is deleted, DiSky recreates a "fake" message object with all cached information.
+
+### How Deletion Works
+
+1. User sends a message
+2. DiSky caches all message data (content, author, attachments, etc.)
+3. User or moderator deletes the message
+4. DiSky recreates a message object from the cache
+5. You can access the deleted message data in the `on message delete` event
+
+### Using the Delete Event
+
+```applescript
+on message delete:
+    # event-message is a reconstructed message with cached data
+
+    set {_deleted} to event-message
+    set {_content} to content of {_deleted}
+    set {_author} to author of {_deleted}
+    set {_channel} to message channel of {_deleted}
+
+    # Skip if no content (e.g., uncached message)
+    if {_content} is not set:
+        stop
+
+    # Log deletion
+    set {_logChannel} to text channel with id "DELETE_LOG_CHANNEL_ID"
+
+    make embed:
+        set title of embed to "🗑️ Message Deleted"
+        add field named "Author" with value mention tag of {_author} to fields of embed
+        add field named "Channel" with value mention tag of {_channel} to fields of embed
+        add field named "Content" with value {_content} to fields of embed
+        set embed color of embed to red
+        set timestamp of embed to now
+
+    post last embed to {_logChannel}
+```
+
+<Aside type="caution" title="Important Limitation">
+  The reconstructed message is **not a real Discord message**. You cannot:
+  - Delete it again
+  - Reference it
+  - React to it
+  - Edit it
+
+  Attempting these operations will result in a `10008: Unknown Message` error.
+</Aside>
+
+## What Can You Access?
+
+From cached deleted messages, you can typically access:
+
+- Message content (text)
+- Author information
+- Channel information
+- Timestamp
+- Attachments (URLs, not files)
+- Embeds
+- Message ID
+
+## Practical Examples
+
+### Complete Moderation Log
+
+```applescript
+# Message edits
+on message edit:
+    # Ignore bot messages
+    if author of event-message is a bot:
+        stop
+
+    set {_old} to event-string
+    set {_new} to event-message
+    set {_author} to author of {_new}
+    set {_channel} to message channel of {_new}
+
+    set {_logChannel} to text channel with id "EDIT_LOG_CHANNEL"
+
+    make embed:
+        set title of embed to "📝 Message Edited"
+        set author of embed to discord name of {_author}
+        set author icon of embed to avatar of {_author}
+
+        if length of {_old} > 1024:
+            set {_old} to "%first 1020 characters of {_old}%..."
+        if length of {_new} > 1024:
+            set {_new} to "%first 1020 characters of {_new}%..."
+
+        add field named "Before" with value {_old} to fields of embed
+        add field named "After" with value {_new} to fields of embed
+        add field named "Location" with value "%mention tag of {_channel}% ([Jump](%jump url of {_new}%))" to fields of embed
+
+        set embed color of embed to orange
+        set timestamp of embed to now
+        set footer of embed to "User ID: %discord id of {_author}%"
+
+    post last embed to {_logChannel}
+
+# Message deletions
+on message delete:
+    set {_msg} to event-message
+
+    # Check if message was cached
+    if {_msg} is not set:
+        stop
+
+    set {_author} to author of {_msg}
+
+    # Ignore bot messages
+    if {_author} is a bot:
+        stop
+
+    set {_content} to content of {_msg}
+    set {_channel} to message channel of {_msg}
+
+    # Skip empty messages (like image-only)
+    if {_content} is not set:
+        set {_content} to "*[No text content]*"
+
+    set {_logChannel} to text channel with id "DELETE_LOG_CHANNEL"
+
+    make embed:
+        set title of embed to "🗑️ Message Deleted"
+        set author of embed to discord name of {_author}
+        set author icon of embed to avatar of {_author}
+
+        # Truncate long messages
+        if length of {_content} > 1024:
+            set {_content} to "%first 1020 characters of {_content}%..."
+
+        add field named "Content" with value {_content} to fields of embed
+        add field named "Channel" with value mention tag of {_channel} to fields of embed
+        add field named "Message ID" with value discord id of {_msg} to fields of embed
+
+        set embed color of embed to red
+        set timestamp of embed to now
+        set footer of embed to "User ID: %discord id of {_author}%"
+
+    post last embed to {_logChannel}
+```
+
+### Track Attachment Deletions
+
+```applescript
+on message delete:
+    set {_msg} to event-message
+
+    if {_msg} is not set:
+        stop
+
+    # Get attachments
+    set {_attachments::*} to attachments of {_msg}
+
+    if {_attachments::*} is set:
+        set {_author} to author of {_msg}
+        set {_channel} to message channel of {_msg}
+
+        set {_logChannel} to text channel with id "ATTACHMENT_LOG"
+
+        make embed:
+            set title of embed to "📎 Message with Attachments Deleted"
+            set author of embed to discord name of {_author}
+            set author icon of embed to avatar of {_author}
+
+            add field named "Channel" with value mention tag of {_channel} to fields of embed
+
+            # List attachments
+            clear {_attachList::*}
+            loop {_attachments::*}:
+                add "[%file name of loop-value%](%url of loop-value%)" to {_attachList::*}
+
+            add field named "Attachments" with value join {_attachList::*} with nl to fields of embed
+
+            set embed color of embed to purple
+            set timestamp of embed to now
+
+        post last embed to {_logChannel}
+```
+
+### Filter Spam Deletions
+
+```applescript
+# Track recently deleted messages by user
+on message delete:
+    set {_msg} to event-message
+
+    if {_msg} is not set:
+        stop
+
+    set {_author} to author of {_msg}
+    set {_authorId} to discord id of {_author}
+
+    # Ignore bots
+    if {_author} is a bot:
+        stop
+
+    # Count recent deletions
+    add 1 to {spam-tracker::%{_authorId}%}
+
+    # Clear counter after 10 seconds
+    wait 10 seconds
+    remove 1 from {spam-tracker::%{_authorId}%}
+
+    # Check for spam deletion (5+ messages in 10 seconds)
+    if {spam-tracker::%{_authorId}%} >= 5:
+        set {_logChannel} to text channel with id "SPAM_LOG"
+
+        make embed:
+            set title of embed to "⚠️ Rapid Message Deletion Detected"
+            set description of embed to "%mention tag of {_author}% deleted 5+ messages in 10 seconds"
+            add field named "User" with value "%discord name of {_author}% (%{_authorId}%)" to fields of embed
+            set embed color of embed to dark red
+            set timestamp of embed to now
+
+        post last embed to {_logChannel}
+
+        # Reset counter
+        set {spam-tracker::%{_authorId}%} to 0
+```
+
+### Restore Deleted Content
+
+```applescript
+command /restore <text>:
+    trigger:
+        # Only for moderators
+        if event-user doesn't have permission "MANAGE_MESSAGES":
+            reply with hidden "❌ You don't have permission!"
+            stop
+
+        set {_messageId} to arg-1
+
+        # Check if message exists in cache (this is conceptual)
+        # Note: You'd need to implement your own caching system for this
+
+        reply with "ℹ️ DiSky cannot retrieve deleted messages after they're deleted. Use message delete event to log them in real-time."
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Log Immediately**
+
+   Process edit/delete events as they happen. Don't rely on retrieving data later.
+
+2. **Filter Bot Messages**
+
+   Ignore bot edits/deletions to reduce log spam.
+
+3. **Check for Null**
+
+   Always verify cached data exists before using it.
+
+4. **Truncate Long Content**
+
+   Limit message content to prevent embed errors (1024 character field limit).
+
+5. **Store Important Data**
+
+   If you need long-term message history, save critical data to a database.
+
+6. **Respect Privacy**
+
+   Consider user privacy when logging message content. Make logs accessible only to moderators.
+
+7. **Monitor Cache Size**
+
+   Be aware of memory usage if your bot handles many messages.
+
+</Steps>
+
+## Limitations and Caveats
+
+### Cache is Temporary
+```applescript
+# ❌ This won't work - cache is cleared on restart
+on server start:
+    # No access to messages from before bot started
+```
+
+### Cannot Modify Fake Messages
+```applescript
+on message delete:
+    set {_msg} to event-message
+
+    # ❌ This will fail - message doesn't exist on Discord
+    delete {_msg}  # Results in "10008: Unknown Message" error
+```
+
+### Memory Usage
+```applescript
+# Large servers with many messages can consume significant RAM
+# Consider implementing:
+# - Cache size limits
+# - Periodic cache clearing
+# - Selective caching (only certain channels)
+```
+
+## Why This System Exists
+
+Discord's API doesn't provide message content for deleted messages. When a message is deleted, Discord only sends the message ID and channel ID - no content, author, or other data.
+
+DiSky's caching system solves this by:
+- Storing message data when received
+- Providing that data when deletion events occur
+- Allowing moderation logging without relying on Discord's API
+
+## Alternatives
+
+If you need permanent message history:
+
+```applescript
+# Store messages in a database
+on message received:
+    set {_msg} to event-message
+    set {_id} to discord id of {_msg}
+    set {_content} to content of {_msg}
+    set {_author} to discord id of author of {_msg}
+    set {_time} to now
+
+    # Store in database (pseudocode)
+    execute "INSERT INTO messages VALUES ('%{_id}%', '%{_content}%', '%{_author}%', '%{_time}%')" in {sql}
+```
+
+## Troubleshooting
+
+### Deleted Message Has No Content
+
+**Problem:** `event-message` is null in delete event.
+
+**Solutions:**
+- Message was sent before bot started (not cached)
+- Message was sent during bot downtime
+- Bot didn't have permission to see the message
+- Cache was cleared or bot restarted
+
+### Edit Event Not Showing Old Content
+
+**Problem:** `event-string` is empty or same as new content.
+
+**Solutions:**
+- Message was edited before bot started
+- Edit happened too quickly (race condition)
+- Message wasn't cached properly
+
+### "Unknown Message" Error
+
+**Problem:** Trying to interact with deleted message.
+
+**Explanation:** Deleted messages are reconstructed objects, not real Discord messages.
+
+**Solution:** Only use cached data for reading. Don't try to delete, edit, or reference fake messages.
+
+## Next Steps
+
+- Create [Polls](/guides/messages/polls/) for gathering feedback
+- Build [Advanced Messages](/guides/messages/advanced-messages/) with embeds
+- Learn about [Error Handling](/concepts/error-handling/)
+- Set up [Audit Logs](/guides/guild/logs/) for moderation tracking

@@ -1,0 +1,479 @@
+---
+title: Rate Limits
+description: Understand and handle Discord API rate limits in your bot
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Rate limits are Discord's way of preventing abuse and ensuring fair usage of their API. Understanding rate limits is crucial for building a reliable, well-behaved bot that won't get temporarily blocked.
+
+## What Are Rate Limits?
+
+A rate limit controls how frequently you can perform actions through Discord's API. When you exceed the limit, Discord temporarily restricts your bot's ability to make requests.
+
+Think of it like a speed limit for API requests - go too fast, and you'll be pulled over (rate limited).
+
+<Aside type="note">
+  Different API endpoints have different rate limits. Some operations are more expensive than others.
+</Aside>
+
+## How Rate Limits Work
+
+Discord uses a sliding window system:
+
+<Steps>
+
+1. **Request Made**
+
+   Your bot sends a request to Discord (send message, create channel, etc.)
+
+2. **Limit Check**
+
+   Discord checks if you've exceeded the limit for that specific endpoint
+
+3. **Decision**
+
+   - **Under limit**: Request processes normally
+   - **Over limit**: Discord returns a `429 Too Many Requests` error
+
+4. **Wait Period**
+
+   Discord's response includes a `Retry-After` header telling you how long to wait
+
+</Steps>
+
+## Identifying Rate Limits
+
+### In Console
+
+When rate limited, you'll see messages like:
+
+```
+[net.dv8tion.jda.api.requests.RestRateLimiter] Encountered cloudflare rate limit! Retry-After: 100 s
+```
+
+This means you need to wait 100 seconds before making more requests to that endpoint.
+
+### For Self-Hosted Bots
+
+If you're running your bot locally, you might see:
+
+- Bot appears offline in Discord
+- Commands stop responding
+- Console shows rate limit errors
+- Temporary disconnection from Discord
+
+<Aside type="caution">
+  Rate limits can look like internet connectivity issues, but they're actually Discord blocking your excessive requests.
+</Aside>
+
+## Common Causes
+
+### Repetitive Operations
+
+```applescript
+# ❌ BAD - Rapidly retrieving messages
+loop 100 times:
+    retrieve messages from event-channel and store them in {_msgs::*}
+    # This will hit rate limits quickly!
+```
+
+```applescript
+# ✅ GOOD - Retrieve once
+retrieve messages from event-channel and store them in {_msgs::*}
+loop {_msgs::*}:
+    # Process each message
+```
+
+### Mass Messaging
+
+```applescript
+# ❌ BAD - Sending many messages rapidly
+loop all members of event-guild:
+    set {_dm} to dm channel of loop-value
+    post "Hello!" to {_dm}
+    # This will definitely get rate limited!
+```
+
+```applescript
+# ✅ GOOD - Add delays between messages
+loop all members of event-guild:
+    set {_dm} to dm channel of loop-value
+    post "Hello!" to {_dm}
+    wait 1 second  # Add delay to respect rate limits
+```
+
+### Bulk Operations Without Bulk Endpoints
+
+```applescript
+# ❌ BAD - Deleting messages one by one
+loop {_messages::*}:
+    delete loop-value
+    # Slow and rate limit prone
+```
+
+```applescript
+# ✅ GOOD - Use bulk delete
+bulk delete {_messages::*}
+# Single API call, much faster
+```
+
+## Preventing Rate Limits
+
+<Steps>
+
+1. **Audit Your Code**
+
+   Review scripts for repeated Discord operations (retrieve, post, reply, etc.)
+
+2. **Add Cooldowns**
+
+   Implement per-user or global cooldowns on commands:
+
+   ```applescript
+   command /spam:
+       cooldown: 5 seconds
+       trigger:
+           reply with "This command has a cooldown!"
+   ```
+
+3. **Use Bulk Operations**
+
+   When available, use bulk endpoints for multiple actions:
+
+   ```applescript
+   # Use bulk delete instead of looping
+   bulk delete {_messages::*}
+
+   # Use batch role operations
+   add {_role1}, {_role2} to roles of {_member}
+   ```
+
+4. **Add Delays**
+
+   Insert waits between operations:
+
+   ```applescript
+   loop {_users::*}:
+       # Do something
+       wait 500 milliseconds  # Brief pause
+   ```
+
+5. **Respect Retry-After**
+
+   If you get a 429 error, wait the specified time before retrying
+
+6. **Cache Data**
+
+   Store frequently accessed data instead of repeatedly fetching it:
+
+   ```applescript
+   # ❌ BAD - Fetch every time
+   loop 100 times:
+       set {_guild} to event-guild
+       set {_name} to discord name of {_guild}
+
+   # ✅ GOOD - Fetch once
+   set {_guild} to event-guild
+   set {_name} to discord name of {_guild}
+   loop 100 times:
+       # Use cached {_name}
+   ```
+
+</Steps>
+
+## Practical Examples
+
+### Safe Mass DM System
+
+```applescript
+command /announce <text>:
+    trigger:
+        # Check permissions
+        if event-user doesn't have permission "ADMINISTRATOR":
+            reply with "Only administrators can use this!"
+            stop
+
+        set {_message} to arg-1
+        set {_members::*} to all members of event-guild
+
+        reply with "Sending announcement to %size of {_members::*}% members..."
+
+        set {_success} to 0
+        set {_failed} to 0
+
+        loop {_members::*}:
+            # Skip bots
+            if loop-value is a bot:
+                continue
+
+            try:
+                set {_dm} to dm channel of loop-value
+                post {_message} to {_dm}
+                add 1 to {_success}
+
+                # Add delay to prevent rate limiting
+                wait 1 second
+
+            catch {_error}:
+                add 1 to {_failed}
+
+            # Progress update every 10 members
+            if mod(loop-index, 10) is 0:
+                broadcast "Sent to %{_success}% members so far..."
+
+        reply with "✅ Announcement complete! Sent: %{_success}%, Failed: %{_failed}%"
+```
+
+### Message Cleanup with Rate Limit Protection
+
+```applescript
+command /purge <number>:
+    trigger:
+        set {_amount} to arg-1
+
+        if {_amount} > 100:
+            reply with "Cannot delete more than 100 messages at once!"
+            stop
+
+        # Retrieve messages
+        retrieve {_amount} messages from event-channel and store them in {_msgs::*}
+
+        if size of {_msgs::*} <= 0:
+            reply with "No messages to delete!"
+            stop
+
+        # Use bulk delete (single API call)
+        bulk delete {_msgs::*}
+
+        reply with "✅ Deleted %size of {_msgs::*}% messages!"
+```
+
+### Cooldown System
+
+```applescript
+# Global cooldown tracking
+command /daily:
+    trigger:
+        set {_userId} to discord id of event-user
+        set {_lastUse} to {cooldown::%{_userId}%}
+
+        if {_lastUse} is set:
+            set {_elapsed} to difference between {_lastUse} and now
+
+            if {_elapsed} < 24 hours:
+                set {_remaining} to 24 hours - {_elapsed}
+                reply with "⏰ You can use this command again in %{_remaining}%"
+                stop
+
+        # Command logic here
+        reply with "🎁 Here's your daily reward!"
+
+        # Set cooldown
+        set {cooldown::%{_userId}%} to now
+```
+
+### Retry Logic with Exponential Backoff
+
+```applescript
+function safePost(msg: text, channel: channel):
+    set {_attempts} to 0
+    set {_maxAttempts} to 3
+    set {_delay} to 1 second
+
+    loop {_maxAttempts} times:
+        add 1 to {_attempts}
+
+        try:
+            post {_msg} to {_channel}
+            return  # Success!
+
+        catch {_error}:
+            if {_error} contains "rate limit":
+                if {_attempts} < {_maxAttempts}:
+                    broadcast "Rate limited, waiting %{_delay}% before retry..."
+                    wait {_delay}
+                    set {_delay} to {_delay} * 2  # Double delay each time
+                else:
+                    broadcast "Failed after %{_maxAttempts}% attempts"
+            else:
+                broadcast "Error: %{_error}%"
+                stop
+```
+
+## Advanced Rate Limit Handling
+
+### Request Queue System
+
+```applescript
+# Queue messages to avoid rate limits
+on load:
+    set {message-queue::*} to "empty list"
+
+command /queuemsg <text>:
+    trigger:
+        add arg-1 to {message-queue::*}
+        reply with "Message queued!"
+
+# Process queue slowly
+every 2 seconds:
+    if size of {message-queue::*} > 0:
+        set {_msg} to first element of {message-queue::*}
+        remove first element of {message-queue::*}
+
+        post {_msg} to text channel with id "CHANNEL_ID"
+```
+
+### Monitor Multiple Bots
+
+If running multiple bots on the same machine:
+
+```applescript
+# Check all bots for rate limit issues
+command /checkbots:
+    trigger:
+        # If one bot is rate limited, others on the same IP may be affected
+        # Consider staggering requests across multiple bots
+
+        reply with "⚠️ If one bot gets rate limited, all bots on this IP may be affected!"
+```
+
+## When to Contact Discord
+
+If you're experiencing rate limits during normal operations despite following best practices:
+
+<Steps>
+
+1. **Verify Best Practices**
+
+   Double-check you're following all optimization guidelines
+
+2. **Check Bot Scale**
+
+   Large bots (thousands of servers) have different needs
+
+3. **Review Patterns**
+
+   Look for unusual spikes in API usage
+
+4. **Contact Discord**
+
+   Visit [Discord Support](https://dis.gd/contact) if:
+   - Your verified bot has legitimate high-volume needs
+   - You believe there's a bug with rate limiting
+   - You need to request higher rate limits
+
+</Steps>
+
+## Common Rate Limit Scenarios
+
+### Startup Spam
+
+```applescript
+# ❌ BAD - All guilds process at once
+on guild ready:
+    # This runs for EVERY guild simultaneously!
+    loop all channels of event-guild:
+        post "Bot is ready!" to loop-value  # Rate limit city!
+```
+
+```applescript
+# ✅ GOOD - Minimal startup operations
+on guild ready:
+    # Only log, don't spam
+    broadcast "Guild ready: %discord name of event-guild%"
+```
+
+### Event Spam
+
+```applescript
+# ❌ BAD - Reacting to every message
+on message received:
+    reply with "I saw your message!"  # Will rate limit quickly!
+```
+
+```applescript
+# ✅ GOOD - Selective responses
+on message received:
+    if content of event-message starts with "!":
+        # Only respond to commands
+        reply with "Command received!"
+```
+
+## Troubleshooting
+
+### Bot Keeps Disconnecting
+
+**Problem:** Bot goes offline repeatedly.
+
+**Solutions:**
+- Check console for rate limit errors
+- Review recent code changes for new loops or bulk operations
+- Add delays between Discord operations
+- Verify no other bots on the same IP are causing issues
+
+### Commands Randomly Fail
+
+**Problem:** Commands work sometimes but fail other times.
+
+**Solutions:**
+- Likely hitting rate limits intermittently
+- Add command cooldowns
+- Reduce frequency of Discord API calls
+- Check for concurrent operations
+
+### "Too Many Requests" Error
+
+**Problem:** Getting explicit 429 errors.
+
+**Solutions:**
+- Add `wait` statements between operations
+- Use bulk operations where possible
+- Implement exponential backoff retry logic
+- Review and optimize code for repeated calls
+
+### Cloudflare Rate Limit
+
+**Problem:** Console shows "Encountered cloudflare rate limit".
+
+**Explanation:** This is Discord's global rate limit, more serious than endpoint-specific limits.
+
+**Solutions:**
+- Significantly reduce API calls
+- Add longer delays (seconds, not milliseconds)
+- Review all bots on your IP
+- Check if token was compromised
+
+## Rate Limit Best Practices Summary
+
+<Steps>
+
+1. **Cache aggressively** - Store data instead of refetching
+
+2. **Batch operations** - Use bulk endpoints when available
+
+3. **Add delays** - Wait between repeated operations
+
+4. **Use cooldowns** - Prevent command spam
+
+5. **Monitor usage** - Watch console for rate limit warnings
+
+6. **Handle errors** - Implement retry logic with backoff
+
+7. **Optimize code** - Remove unnecessary API calls
+
+8. **Test thoroughly** - Simulate high load during development
+
+</Steps>
+
+## Resources
+
+- [Discord API Rate Limits Documentation](https://discord.com/developers/docs/topics/rate-limits)
+- [Discord Support](https://dis.gd/contact)
+
+## Next Steps
+
+- Learn about [Asynchronous Operations](/concepts/async/) to handle delays
+- Implement [Error Handling](/concepts/error-handling/) for rate limit errors
+- Understand [Data Structures](/concepts/data-structures/) for efficient coding
+- Build [Advanced Messages](/guides/messages/advanced-messages/) efficiently

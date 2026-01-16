@@ -1,0 +1,331 @@
+---
+title: Presence & Status
+description: Customize your bot's presence and online status
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Your bot can display custom presence activities and online status, just like regular Discord users. This guide shows you how to customize both.
+
+## Understanding the Difference
+
+- **Presence**: The activity text shown in your bot's profile (e.g., "Playing Minecraft")
+- **Status**: The colored indicator next to your bot's avatar (🟢 Online, 🟡 Idle, etc.)
+
+## Presence Activities
+
+Your bot can display what it's currently doing. Discord supports several activity types:
+
+### Activity Types
+
+<Tabs>
+<TabItem label="Playing">
+
+Shows as "Playing [text]"
+
+```applescript
+set presence of bot named "MyBot" to playing "Minecraft"
+```
+
+Result: **Playing Minecraft**
+
+</TabItem>
+<TabItem label="Listening">
+
+Shows as "Listening to [text]"
+
+```applescript
+set presence of bot named "MyBot" to listening "Spotify"
+```
+
+Result: **Listening to Spotify**
+
+</TabItem>
+<TabItem label="Watching">
+
+Shows as "Watching [text]"
+
+```applescript
+set presence of bot named "MyBot" to watching "YouTube"
+```
+
+Result: **Watching YouTube**
+
+</TabItem>
+<TabItem label="Competing">
+
+Shows as "Competing in [text]"
+
+```applescript
+set presence of bot named "MyBot" to competing "Arena Championship"
+```
+
+Result: **Competing in Arena Championship**
+
+</TabItem>
+<TabItem label="Streaming">
+
+Shows as "Streaming [text]" with a purple "LIVE" indicator
+
+```applescript
+set presence of bot named "MyBot" to streaming "coding" with url "https://twitch.tv/username"
+```
+
+Result: **Streaming coding** (with purple indicator)
+
+<Aside type="caution">
+  The URL must be from **YouTube** or **Twitch** for the streaming status to work properly.
+</Aside>
+
+</TabItem>
+</Tabs>
+
+## Online Status
+
+The status indicator appears as a colored circle at the bottom-right of your bot's avatar.
+
+### Available Statuses
+
+| Status | Indicator | Description |
+|--------|-----------|-------------|
+| `online` | 🟢 Green | Bot is online and active |
+| `idle` | 🟡 Yellow | Bot is idle/away |
+| `do not disturb` | 🔴 Red | Bot should not be disturbed |
+| `offline` | ⚪ Gray | Bot appears offline (won't be shown in member list) |
+| `invisible` | None | Bot is online but appears offline |
+
+### Setting Status
+
+<Tabs>
+<TabItem label="Online">
+
+```applescript
+set online status of bot named "MyBot" to online
+```
+
+Your bot appears **online** with a green indicator 🟢
+
+</TabItem>
+<TabItem label="Idle">
+
+```applescript
+set online status of bot named "MyBot" to idle
+```
+
+Your bot appears **away** with a yellow indicator 🟡
+
+</TabItem>
+<TabItem label="Do Not Disturb">
+
+```applescript
+set online status of bot named "MyBot" to do not disturb
+```
+
+Your bot appears **busy** with a red indicator 🔴
+
+</TabItem>
+<TabItem label="Offline">
+
+```applescript
+set online status of bot named "MyBot" to offline
+```
+
+Your bot **appears offline** and won't show in the member list ⚪
+
+<Aside type="caution">
+  The bot is still online and functional, but users see it as offline.
+</Aside>
+
+</TabItem>
+<TabItem label="Invisible">
+
+```applescript
+set online status of bot named "MyBot" to invisible
+```
+
+Your bot is **online but hidden** - no status indicator shown.
+
+<Aside type="tip">
+  Useful for stealth monitoring bots or background services.
+</Aside>
+
+</TabItem>
+</Tabs>
+
+## Complete Examples
+
+### Dynamic Presence in on ready
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: default intents
+
+    on ready:
+        # Set online status
+        set online status of event-bot to online
+
+        # Set presence
+        set presence of event-bot to playing "on %size of guilds of event-bot% servers"
+
+        send "&aBot is ready!" to console
+```
+
+### Cycling Presences
+
+```applescript
+every 30 seconds:
+    set {_random} to random integer between 1 and 3
+
+    if {_random} is 1:
+        set presence of bot named "MyBot" to playing "Minecraft"
+    else if {_random} is 2:
+        set presence of bot named "MyBot" to watching "the server"
+    else:
+        set presence of bot named "MyBot" to listening "commands"
+```
+
+### Status Based on Activity
+
+```applescript
+command /maintenance [<text>]:
+    trigger:
+        if arg-1 is "on":
+            set online status of bot named "MyBot" to do not disturb
+            set presence of bot named "MyBot" to playing "Maintenance Mode"
+            send "Bot is now in maintenance mode"
+        else:
+            set online status of bot named "MyBot" to online
+            set presence of bot named "MyBot" to playing "Minecraft"
+            send "Bot is back online"
+```
+
+### Member Count Presence
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: guild members, default intents
+
+    on ready:
+        set {_totalMembers} to 0
+        loop guilds of event-bot:
+            add size of members of loop-value to {_totalMembers}
+
+        set presence of event-bot to watching "%{_totalMembers}% members"
+```
+
+## Best Practices
+
+### Presence
+
+1. **Keep it relevant** - Show what your bot actually does
+2. **Keep it short** - Long presence texts get truncated
+3. **Update dynamically** - Show live stats like server/member count
+4. **Don't spam updates** - Limit updates to once every 30+ seconds
+
+### Status
+
+1. **Use online for normal operation** - Default status
+2. **Use do not disturb for maintenance** - Signals downtime
+3. **Use idle sparingly** - Better for scheduled tasks
+4. **Avoid offline/invisible** - Users might think the bot is broken
+
+## Common Patterns
+
+### Server Count
+
+```applescript
+set presence of bot named "MyBot" to playing "on %size of guilds of event-bot% servers"
+```
+
+### Help Command
+
+```applescript
+set presence of bot named "MyBot" to listening "/help for commands"
+```
+
+### Website Link
+
+```applescript
+set presence of bot named "MyBot" to playing "Visit bot.example.com"
+```
+
+### Version Information
+
+```applescript
+set presence of bot named "MyBot" to playing "v2.0.0 | /help"
+```
+
+## Troubleshooting
+
+### Presence Not Updating
+
+**Possible causes:**
+- Bot not fully loaded yet
+- Discord API rate limits
+- Network issues
+
+**Solution**: Set presence in the `on ready` section and avoid rapid updates.
+
+### Streaming Status Not Purple
+
+The URL must be from YouTube or Twitch:
+
+```applescript
+# ✅ Correct
+set presence of bot "MyBot" to streaming "coding" with url "https://twitch.tv/user"
+
+# ❌ Wrong - won't show purple indicator
+set presence of bot "MyBot" to streaming "coding" with url "https://example.com"
+```
+
+### Status Doesn't Change
+
+Make sure you're using the correct syntax:
+
+```applescript
+# ✅ Correct
+set online status of bot named "MyBot" to idle
+
+# ❌ Wrong
+set status of bot named "MyBot" to "idle"
+```
+
+## Examples Gallery
+
+### Music Bot
+
+```applescript
+# When music starts
+set presence of bot named "MusicBot" to listening "🎵 %song name%"
+set online status of bot named "MusicBot" to online
+
+# When music stops
+set presence of bot named "MusicBot" to listening "/play to start"
+set online status of bot named "MusicBot" to idle
+```
+
+### Moderation Bot
+
+```applescript
+set presence of bot named "ModBot" to watching "for rule breakers"
+set online status of bot named "ModBot" to online
+```
+
+### Status Bot
+
+```applescript
+set presence of bot named "StatusBot" to watching "server status"
+set online status of bot named "StatusBot" to online
+```
+
+<Aside type="tip">
+  Combine presence and status to give users clear information about your bot's current state!
+</Aside>
+
+## Next Steps
+
+- Learn about [Multiple Bots](/basics/multiple-bots/)
+- Configure [Bot Settings](/basics/bot-configuration/)
+- Send [Simple Messages](/guides/messages/simple-messages/)

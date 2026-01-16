@@ -1,0 +1,593 @@
+---
+title: Slash Commands
+description: Create modern Discord slash commands with arguments and auto-complete
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Slash commands are Discord's modern, native command system. They provide auto-complete, built-in argument validation, and a clean interface that's discoverable by users. No more remembering prefixes or command syntax!
+
+## What Are Slash Commands?
+
+Slash commands appear in Discord's command picker when users type `/`. They offer:
+
+- **Auto-discovery** - Users can see all available commands
+- **Type validation** - Discord enforces argument types
+- **Better UX** - Clean interface with descriptions and hints
+- **No prefix confusion** - Always start with `/`
+
+## Command Structure
+
+Slash commands can have three levels of organization:
+
+1. **Root Command** - The base command (e.g., `/level`)
+2. **Command Group** - Optional grouping (e.g., `/admin settings`)
+3. **Subcommand** - Commands within a group (e.g., `/admin settings view`)
+
+### Simple Command Example
+
+```
+/level user:@John
+```
+
+- Root command: `level`
+- Argument: `user` (type: User)
+
+### Grouped Command Example
+
+```
+/snippets search query:example
+```
+
+- Root command: `snippets`
+- Subcommand: `search`
+- Argument: `query` (type: String)
+
+## Creating a Basic Slash Command
+
+Define slash commands in your bot's `on ready` section:
+
+### Simple Command
+
+```applescript
+define bot XXX:
+    on ready:
+        # Create command
+        set {_cmd} to new slash command named "ping" with description "Check the bot's latency"
+
+        # Register globally
+        update {_cmd} globally in event-bot
+```
+
+<Aside type="tip" title="Why on ready?">
+  Register slash commands in `on ready` so they're only created once when the bot starts, not every time the script reloads.
+</Aside>
+
+### Handling the Command
+
+```applescript
+on slash command:
+    if event-string is "ping":
+        reply with "Pong! 🏓"
+```
+
+The `event-string` contains the command name, so you can handle multiple commands in one event.
+
+## Adding Arguments (Options)
+
+Arguments (called "options" in Discord) let users provide input to commands:
+
+### Command with Argument
+
+```applescript
+on ready:
+    # Create command
+    set {_level} to new slash command named "level" with description "Check a user's level"
+
+    # Add user option (optional)
+    add new user option named "target" with description "The user to check" to options of {_level}
+
+    # Register
+    update {_level} globally in event-bot
+
+on slash command:
+    if event-string is "level":
+        # Get the argument (might be null)
+        set {_target} to argument "target" as user
+
+        # Use fallback if not provided
+        if {_target} is not set:
+            set {_target} to event-user
+
+        reply with "%mention tag of {_target}% is level 42"
+```
+
+<Aside type="caution">
+  Optional arguments can be `null`. Always provide a fallback value or check if they're set.
+</Aside>
+
+### Required Arguments
+
+Make arguments mandatory:
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "ban" with description "Ban a user"
+
+    # Add required user argument
+    set {_option} to new user option named "user" with description "User to ban"
+    set required state of {_option} to true
+    add {_option} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "ban":
+        set {_user} to argument "user" as user
+        # {_user} is guaranteed to be set (required)
+        reply with "Banned %mention tag of {_user}%"
+```
+
+## Option Types
+
+Discord supports various argument types:
+
+| Type | Description | Supports Choices |
+|------|-------------|------------------|
+| `STRING` | Plain text | ✅ Yes |
+| `INTEGER` | Whole numbers | ✅ Yes |
+| `NUMBER` | Decimal numbers | ✅ Yes |
+| `BOOLEAN` | True/False | ❌ No |
+| `USER` | Discord user | ❌ No |
+| `CHANNEL` | Guild channel | ❌ No |
+| `ROLE` | Server role | ❌ No |
+| `ATTACHMENT` | File upload | ❌ No |
+
+### Creating Different Option Types
+
+<Tabs>
+<TabItem label="String">
+
+```applescript
+add new string option named "text" with description "Enter some text" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_text} to argument "text" as string
+```
+
+</TabItem>
+<TabItem label="Integer">
+
+```applescript
+add new integer option named "amount" with description "Enter a number" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_amount} to argument "amount" as integer
+```
+
+</TabItem>
+<TabItem label="Number">
+
+```applescript
+add new number option named "price" with description "Enter a price" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_price} to argument "price" as number
+```
+
+</TabItem>
+<TabItem label="Boolean">
+
+```applescript
+add new boolean option named "enabled" with description "Enable or disable" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_enabled} to argument "enabled" as boolean
+    if {_enabled} is true:
+        reply with "Enabled!"
+```
+
+</TabItem>
+<TabItem label="User">
+
+```applescript
+add new user option named "target" with description "Select a user" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_user} to argument "target" as user
+```
+
+</TabItem>
+<TabItem label="Channel">
+
+```applescript
+add new channel option named "destination" with description "Select a channel" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_channel} to argument "destination" as channel
+```
+
+</TabItem>
+<TabItem label="Role">
+
+```applescript
+add new role option named "role" with description "Select a role" to options of {_cmd}
+
+# Get value
+on slash command:
+    set {_role} to argument "role" as role
+```
+
+</TabItem>
+<TabItem label="Attachment">
+
+```applescript
+add new attachment option named "file" with description "Upload a file" to options of {_cmd}
+
+# Get value and use it
+on slash command:
+    set {_file} to argument "file" as attachment
+
+    # Check if it's an image
+    if attachment {_file} is an image:
+        download {_file} to path "uploads/%file name of {_file}%"
+        reply with "Image saved: %file name of {_file}%"
+    else:
+        reply with "Please upload an image!"
+```
+
+</TabItem>
+</Tabs>
+
+## Choices (Predefined Values)
+
+For STRING, INTEGER, and NUMBER options, you can provide predefined choices:
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "gamemode" with description "Change your gamemode"
+
+    # Create option with choices
+    set {_option} to new string option named "mode" with description "Select gamemode"
+
+    # Add choices
+    add new choice named "Survival" with value "survival" to choices of {_option}
+    add new choice named "Creative" with value "creative" to choices of {_option}
+    add new choice named "Adventure" with value "adventure" to choices of {_option}
+    add new choice named "Spectator" with value "spectator" to choices of {_option}
+
+    set required state of {_option} to true
+    add {_option} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "gamemode":
+        set {_mode} to argument "mode" as string
+
+        # {_mode} is guaranteed to be one of the choice values
+        reply with "Gamemode set to: %{_mode}%"
+```
+
+<Aside type="tip">
+  Choices create a dropdown menu in Discord. The user can only select from the provided options, ensuring valid input.
+</Aside>
+
+## Localizations
+
+Since DiSky v4.3.0, you can provide translations for different languages:
+
+```applescript
+on ready:
+    # Create command with default English name/description
+    set {_cmd} to new slash command named "level" with description "Check your level"
+
+    # Add French localization
+    add new locale data for "FR" with value "niveau" to name localizations of {_cmd}
+    add new locale data for "FR" with value "Voir votre niveau" to description localizations of {_cmd}
+
+    # Add Spanish localization
+    add new locale data for "ES" with value "nivel" to name localizations of {_cmd}
+    add new locale data for "ES" with value "Ver tu nivel" to description localizations of {_cmd}
+
+    update {_cmd} globally in event-bot
+```
+
+Users see the command in their Discord language if you've provided a localization.
+
+Find locale codes in the [Discord documentation](https://discord.com/developers/docs/reference#locales).
+
+## Command Registration Scopes
+
+You can register commands globally or per-guild:
+
+### Global Commands
+
+```applescript
+# Register for all servers (takes up to 1 hour to update)
+update {_cmd} globally in event-bot
+```
+
+Global commands:
+- Available in all servers
+- Take up to 1 hour to update
+- Good for stable, production commands
+
+### Guild Commands
+
+```applescript
+# Register for specific guild (instant update)
+update {_cmd} in event-guild with event-bot
+```
+
+Guild commands:
+- Only available in that server
+- Update instantly
+- Good for testing and server-specific commands
+
+<Aside type="tip" title="Development Tip">
+  Use guild commands during development for instant updates, then switch to global commands for production.
+</Aside>
+
+## Practical Examples
+
+### User Info Command
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "userinfo" with description "Get information about a user"
+
+    add new user option named "target" with description "User to check (defaults to you)" to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "userinfo":
+        set {_target} to argument "target" as user
+        if {_target} is not set:
+            set {_target} to event-user
+
+        make embed:
+            set title of embed to "User Information"
+            set author of embed to discord name of {_target}
+            set author icon of embed to avatar of {_target}
+            set embed color of embed to blue
+
+            add field named "ID" with value discord id of {_target} to fields of embed
+            add field named "Created" with value "%creation date of {_target}%" to fields of embed
+
+            set thumbnail of embed to avatar of {_target}
+
+        reply with last embed
+```
+
+### Math Command with Choices
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "math" with description "Perform math operations"
+
+    # Operation choice
+    set {_op} to new string option named "operation" with description "Select operation"
+    add new choice named "Add" with value "add" to choices of {_op}
+    add new choice named "Subtract" with value "sub" to choices of {_op}
+    add new choice named "Multiply" with value "mul" to choices of {_op}
+    add new choice named "Divide" with value "div" to choices of {_op}
+    set required state of {_op} to true
+    add {_op} to options of {_cmd}
+
+    # Numbers
+    set {_num1} to new number option named "first" with description "First number"
+    set required state of {_num1} to true
+    add {_num1} to options of {_cmd}
+
+    set {_num2} to new number option named "second" with description "Second number"
+    set required state of {_num2} to true
+    add {_num2} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "math":
+        set {_op} to argument "operation" as string
+        set {_a} to argument "first" as number
+        set {_b} to argument "second" as number
+
+        if {_op} is "add":
+            set {_result} to {_a} + {_b}
+        else if {_op} is "sub":
+            set {_result} to {_a} - {_b}
+        else if {_op} is "mul":
+            set {_result} to {_a} * {_b}
+        else if {_op} is "div":
+            if {_b} is 0:
+                reply with "❌ Cannot divide by zero!"
+                stop
+            set {_result} to {_a} / {_b}
+
+        reply with "**Result:** %{_result}%"
+```
+
+### Moderation Command with Permissions
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "kick" with description "Kick a user from the server"
+
+    set {_user} to new user option named "user" with description "User to kick"
+    set required state of {_user} to true
+    add {_user} to options of {_cmd}
+
+    add new string option named "reason" with description "Reason for kick" to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "kick":
+        # Check permissions
+        if event-user doesn't have permission "KICK_MEMBERS":
+            reply with hidden "❌ You don't have permission to kick members!"
+            stop
+
+        set {_target} to argument "user" as user
+        set {_reason} to argument "reason" as string
+        if {_reason} is not set:
+            set {_reason} to "No reason provided"
+
+        # Perform kick
+        kick {_target} from event-guild due to {_reason}
+
+        reply with "✅ Kicked %mention tag of {_target}% - Reason: %{_reason}%"
+```
+
+### File Upload Handler
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "upload" with description "Upload a file"
+
+    set {_file} to new attachment option named "file" with description "File to upload"
+    set required state of {_file} to true
+    add {_file} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "upload":
+        set {_file} to argument "file" as attachment
+
+        # Check size (8MB limit for most servers)
+        if size of {_file} > 8388608:  # 8MB in bytes
+            reply with hidden "❌ File too large! Maximum size is 8MB."
+            stop
+
+        # Check type
+        if attachment {_file} is an image:
+            download {_file} to path "uploads/images/%file name of {_file}%"
+            reply with "✅ Image saved: %file name of {_file}%"
+        else:
+            reply with "❌ Please upload an image file!"
+```
+
+### Admin Command Group
+
+```applescript
+on ready:
+    # Root command
+    set {_admin} to new slash command named "admin" with description "Administration commands"
+
+    # Create subcommand group
+    set {_group} to new command group named "settings" with description "Server settings"
+
+    # Subcommand within group
+    set {_sub} to new subcommand named "view" with description "View current settings"
+    add {_sub} to subcommands of {_group}
+
+    # Add group to root command
+    add {_group} to groups of {_admin}
+
+    update {_admin} globally in event-bot
+
+on slash command:
+    if event-string is "admin":
+        # Handle subcommand
+        reply with "Admin settings viewed!"
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Clear Descriptions**
+
+   Write helpful descriptions for commands and options. Users rely on these!
+
+2. **Use Appropriate Types**
+
+   Choose the right option type - don't use STRING for numbers or users.
+
+3. **Provide Defaults**
+
+   For optional arguments, have sensible fallback values.
+
+4. **Validate Input**
+
+   Even with type checking, validate ranges, permissions, etc.
+
+5. **Use Choices When Appropriate**
+
+   If there are only a few valid values, use choices instead of free text.
+
+6. **Handle Edge Cases**
+
+   Check for null values, zero division, invalid permissions, etc.
+
+7. **Give Feedback**
+
+   Always reply to slash commands - users need confirmation.
+
+</Steps>
+
+## Command Limits
+
+- **Command name**: 1-32 characters, alphanumeric and hyphens only
+- **Description**: 1-100 characters
+- **Options per command**: 25 maximum
+- **Choices per option**: 25 maximum
+- **Subcommands per group**: 25 maximum
+- **Groups per command**: 25 maximum
+
+## Troubleshooting
+
+### Command Not Appearing
+
+**Problem:** Slash command doesn't show up in Discord.
+
+**Solutions:**
+- Wait up to 1 hour for global commands
+- Use guild commands for instant testing
+- Verify bot has `applications.commands` scope
+- Check console for registration errors
+
+### Arguments Not Working
+
+**Problem:** Can't get argument values.
+
+**Solutions:**
+- Verify argument name matches exactly
+- Check you're using correct type (as user, as string, etc.)
+- Ensure optional arguments are checked for null
+- Make required arguments truly required
+
+### Permission Errors
+
+**Problem:** Users can use commands they shouldn't.
+
+**Solutions:**
+- Check permissions in your event handler
+- Use Discord's built-in permission system
+- Provide clear error messages for denied access
+- Log permission violations
+
+### "This interaction failed"
+
+**Problem:** Discord shows error message.
+
+**Solutions:**
+- Reply within 3 seconds
+- Use `defer` if processing takes time
+- Check for errors in your handler
+- Ensure event handler is running
+
+## Next Steps
+
+- Learn about [Modals](/guides/interactions/modals/) for complex input
+- Create [Buttons and Dropdowns](/guides/interactions/components/)
+- Understand [Interactions Overview](/guides/interactions/overview/)
+- Explore [Error Handling](/concepts/error-handling/)

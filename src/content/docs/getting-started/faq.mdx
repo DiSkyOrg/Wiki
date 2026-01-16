@@ -1,0 +1,210 @@
+---
+title: Frequently Asked Questions
+description: Common questions about DiSky answered
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+This page answers the most frequently asked questions about DiSky. If your question isn't answered here, check out our [Getting Help](/getting-started/getting-help/) page.
+
+## Bot Setup & Connection
+
+### Why doesn't my bot come online?
+
+**Possible causes:**
+
+1. **Invalid token** - Double-check your bot token is correct
+2. **Missing intents** - Enable required intents in Discord Developer Portal
+3. **Skript version** - Ensure you're using Skript 2.10+
+4. **Error in console** - Check console for error messages
+
+<Aside type="tip">
+  Run `/ver disky` and `/ver skript` to check your versions.
+</Aside>
+
+### I get "CloseCode 4014" or "Disallowed intents" error
+
+You need to enable privileged intents in the Discord Developer Portal:
+
+1. Go to your [application dashboard](https://discord.com/developers/applications)
+2. Select your bot application
+3. Go to the "Bot" section
+4. Scroll to "Privileged Gateway Intents"
+5. Enable required intents (Server Members, Message Content, Presence)
+
+## Slash Commands
+
+### My slash commands aren't updating/appearing
+
+This usually happens because of one of these reasons:
+
+1. **Missing scope** - When inviting your bot, make sure to include the `applications.commands` scope in the OAuth2 URL
+2. **Cache delay** - Discord can take up to 1 hour to update slash commands globally
+3. **Wrong registration** - Make sure you're registering commands in the correct `on ready` section
+
+<Aside type="caution">
+  Global commands can take up to 1 hour to update. Guild-specific commands update instantly.
+</Aside>
+
+### How do I make guild-specific slash commands?
+
+Register them in the `on guild ready` section instead of `on ready`:
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+
+    on guild ready:
+        # Register guild-specific commands here
+```
+
+## Data & Storage
+
+### I get "entity cannot be stored" error
+
+Discord entities (users, channels, guilds, etc.) cannot be saved to variables that persist across restarts.
+
+**Solution**: Save the entity's **ID** instead, then retrieve it when needed:
+
+```applescript
+# Bad - won't work
+set {savedUser} to event-user
+
+# Good - save the ID
+set {savedUserID} to id of event-user
+
+# Later, retrieve it
+set {_user} to user with id {savedUserID} in event-bot
+```
+
+## Users & Members
+
+### What's the difference between users and members?
+
+- **User**: A Discord account (has: ID, username, avatar, discriminator)
+- **Member**: A user in a specific guild (has: everything a user has + nickname, roles, permissions)
+
+A member always has an associated user, but a user isn't always a member of a guild.
+
+```applescript
+# Get user from member
+set {_user} to user of {_member}
+
+# Get member from user (requires guild context)
+set {_member} to {_user} as member of {_guild}
+```
+
+### I can't change a member's nickname
+
+This is a **hierarchy issue**. You can only modify members with a lower highest role than:
+- Your bot's highest role, OR
+- The member you're modifying (if they're the executor)
+
+<Aside type="caution" title="Server Owners">
+  Server owners always have the highest possible role. You cannot modify their nickname or roles.
+</Aside>
+
+### How does DiSky handle the new username system?
+
+As of DiSky v4.12.1+:
+- Discriminators are removed from display names
+- `%event-member%` returns just the username (e.g., `itsthesky`)
+- The discriminator expression/event is still available for compatibility
+
+## Parsing & Retrieving
+
+### Why can't I use `"123" parsed as user`?
+
+Most Discord entities require **context** to be retrieved:
+- Users need a **bot** context
+- Channels need a **guild** context
+- Members need a **guild** context
+
+**Solution**: Use getter/retriever expressions instead:
+
+```applescript
+# Get user by ID
+set {_user} to user with id "123456789" in bot "MyBot"
+
+# Get channel by ID
+set {_channel} to channel with id "987654321" in guild {_guild}
+
+# Get member by ID
+set {_member} to member with id "123456789" in guild {_guild}
+```
+
+Check the [syntax documentation](https://docs.disky.me/) for available getters and retrievers.
+
+## Performance & Best Practices
+
+### Should I cache everything?
+
+No. Only cache what you need:
+
+- Use `default cache` for most bots
+- Enable specific caches only if you need them
+- More caching = more memory usage
+
+See [Cache Policy](/basics/cache-policy/) for details.
+
+### Can I use `/reload` to reload my bot?
+
+**No!** Using `/reload` can cause serious issues with plugins.
+
+**Always**:
+- Use `/sk reload <script>` to reload specific scripts, OR
+- Restart your server completely
+
+<Aside type="danger">
+  No support will be provided if you use `/reload` and encounter issues.
+</Aside>
+
+## Messages & Interactions
+
+### Why can't my bot read message content?
+
+You need to enable the **Message Content Intent**:
+
+1. In Discord Developer Portal
+2. Go to your bot's settings
+3. Enable "Message Content Intent" under Privileged Gateway Intents
+4. Update your bot's intents in code:
+
+```applescript
+define new bot named "MyBot":
+    intents: all intents  # or specifically include message content intent
+```
+
+### My bot isn't responding to interactions
+
+Check these common issues:
+
+1. **Replied too late** - You have 3 seconds to respond to interactions
+2. **Already replied** - You can only reply once to an interaction
+3. **Not deferring** - For long operations, defer the interaction first
+4. **Missing intents** - Ensure required intents are enabled
+
+## Addons & Compatibility
+
+### Does DiSky work with other Skript addons?
+
+Generally yes, but conflicts can occur:
+- DiSky tries to avoid conflicts with Skript itself
+- Some syntax might conflict with other addons
+- Report any conflicts on our [Discord](https://disky.me/discord)
+
+### Which Skript version should I use?
+
+Use **Skript 2.10+** (required). We recommend the [official SkriptLang fork](https://github.com/SkriptLang/Skript/releases/latest).
+
+## Still Have Questions?
+
+If your question isn't answered here:
+
+1. Check the [full documentation](/getting-started/what-is-disky/)
+2. Search in our [Discord server](https://disky.me/discord)
+3. Ask in the `#support` channel following the [Getting Help](/getting-started/getting-help/) guidelines
+
+<Aside type="tip">
+  Most issues can be solved by checking your intents, updating to the latest version, and reading error messages carefully!
+</Aside>

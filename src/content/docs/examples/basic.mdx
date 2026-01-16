@@ -1,0 +1,407 @@
+---
+title: Basic Examples
+description: Complete examples to help you get started with DiSky
+---
+
+import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page provides complete, ready-to-use examples that demonstrate common DiSky patterns and features.
+
+## Bot Definitions
+
+### Basic Bot
+
+The simplest bot configuration:
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_BOT_TOKEN_HERE"
+    intents: default intents
+    policy: all
+    auto reconnect: true
+
+    on ready:
+        send "Bot is online!" to console
+```
+
+### Bot with All Ready Sections
+
+```applescript
+define new bot named "AdvancedBot":
+    token: "YOUR_BOT_TOKEN_HERE"
+    intents: default intents, message content
+    policy: all
+    auto reconnect: true
+
+    on ready:
+        send "%event-bot% is now online and ready!" to console
+        set presence of event-bot to watching "for commands"
+        set online status of event-bot to online
+
+    on guild ready:
+        set {_guild} to event-guild
+        send "%{_guild}% (ID: %id of {_guild}%) is now loaded!" to console
+
+        # Send a message to the first text channel
+        set {_channel} to first element of text channels of {_guild}
+        if {_channel} is set:
+            post "Hello! I'm now ready to serve this guild!" to {_channel}
+
+    on shutdown:
+        send "%event-bot% is shutting down. Goodbye!" to console
+```
+
+### Bot with Specific Intents
+
+```applescript
+define new bot named "CustomBot":
+    token: "YOUR_BOT_TOKEN_HERE"
+
+    # Only enable intents we need
+    intents: guild members, guild messages, guild voice states
+
+    # Only cache members in voice
+    policy: voice
+    cache flags: voice state
+
+    auto reconnect: true
+
+    on ready:
+        send "CustomBot is online with optimized configuration!" to console
+
+        set {_memberCount} to 0
+        loop guilds of event-bot:
+            add size of members of loop-value to {_memberCount}
+
+        send "Loaded %{_memberCount}% cached members" to console
+```
+
+## Message Examples
+
+### Welcome Messages
+
+```applescript
+on guild member join:
+    # Find the welcome channel
+    set {_channel} to text channel with name "welcome" in event-guild
+    if {_channel} is not set:
+        stop
+
+    # Create welcome embed
+    make embed and store it in {_embed}:
+        set title of embed to "Welcome to %name of event-guild%!"
+        set description of embed to "Welcome %mention tag of event-member%! We're glad to have you here."
+        set embed color of embed to green
+        set thumbnail of embed to avatar of event-user
+
+        add inline field named "Member Count" with value "%size of members of event-guild%" to fields of embed
+        add inline field named "Account Created" with value "%creation date of event-user%" to fields of embed
+
+        set footer of embed to "Enjoy your stay!"
+        set timestamp of embed to now
+
+    post {_embed} to {_channel}
+```
+
+### Server Info Command
+
+```applescript
+on message receive:
+    if message is "!serverinfo":
+        set {_guild} to event-guild
+
+        make embed:
+            set title of embed to name of {_guild}
+            set thumbnail of embed to icon of {_guild}
+            set embed color of embed to blue
+
+            add inline field named "Owner" with value mention tag of owner of {_guild} to fields of embed
+            add inline field named "Members" with value "%size of members of {_guild}%" to fields of embed
+            add inline field named "Channels" with value "%size of channels of {_guild}%" to fields of embed
+            add inline field named "Roles" with value "%size of roles of {_guild}%" to fields of embed
+            add inline field named "Created" with value "%creation date of {_guild}%" to fields of embed
+
+            set footer of embed to "Server ID: %id of {_guild}%"
+
+        reply with last embed
+```
+
+## Interactive Components
+
+### Button Example
+
+```applescript
+# Send message with button
+on message receive:
+    if message is "!button":
+        set {_button} to new success button with id "click_me" named "Click Me!" with reaction "👍"
+        reply with rich components {_button}
+
+# Handle button click
+on button click:
+    if event-string is "click_me":
+        reply with "You clicked the button! 🎉"
+```
+
+### Advanced Button Example
+
+```applescript
+# Send confirmation message
+command /delete:
+    trigger:
+        # Create button row
+        make new component row and store it in {_row}:
+            add new danger button with id "confirm" named "Confirm" to components of row builder
+            add new secondary button with id "cancel" named "Cancel" to components of row builder
+
+        reply with rich "Are you sure?" with component row {_row}
+
+# Handle responses
+on button click:
+    if event-string is "confirm":
+        reply with "Action confirmed! ✅"
+    else if event-string is "cancel":
+        reply with "Action cancelled. ❌"
+```
+
+### Select Menu Example
+
+```applescript
+# Send dropdown
+on message receive:
+    if message is "!select":
+        set {_menu} to new dropdown with id "role_select"
+        set placeholder of {_menu} to "Choose your role"
+        set min range of {_menu} to 1
+        set max range of {_menu} to 1
+
+        add new option with value "developer" named "Developer" with description "Code enthusiast" with reaction "💻" to options of {_menu}
+        add new option with value "designer" named "Designer" with description "Creative mind" with reaction "🎨" to options of {_menu}
+        add new option with value "tester" named "Tester" with description "Quality assurance" with reaction "🧪" to options of {_menu}
+
+        reply with rich components {_menu}
+
+# Handle selection
+on dropdown click:
+    if event-dropdown is "role_select":
+        set {_choice} to first element of selected values
+        reply with "You selected: %{_choice}%!"
+```
+
+## Slash Commands
+
+### Simple Slash Command
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: default intents
+
+    on ready:
+        # Register slash command
+        set {_cmd} to new slash command named "ping" with description "Check bot latency"
+        update {_cmd} globally in event-bot
+
+# Handle slash command
+on slash command:
+    if event-string is "ping":
+        reply with "Pong! 🏓"
+```
+
+### Slash Command with Options
+
+```applescript
+# Register command (in on ready)
+on ready:
+    set {_cmd} to new slash command named "say" with description "Make the bot say something"
+
+    # Add text option
+    set {_option} to new string option named "message" with description "What should I say?"
+    set requirement state of {_option} to true
+    add {_option} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+# Handle command
+on slash command:
+    if event-string is "say":
+        set {_message} to argument "message" as string
+        reply with {_message}
+```
+
+## Moderation
+
+### Auto-Role on Join
+
+```applescript
+on guild member join:
+    # Wait a moment to ensure member is fully loaded
+    wait 1 second
+
+    # Get the "Member" role
+    set {_role} to role named "Member" in event-guild
+    if {_role} is not set:
+        stop
+
+    # Add role to member
+    add {_role} to roles of event-member
+```
+
+### Kick/Ban Commands
+
+```applescript
+on message receive:
+    # Kick command
+    if message starts with "!kick ":
+        if executor has permission "kick members":
+            set {_mention} to subtext of message from character 7 to length of message
+            set {_target} to mentioned members in message
+
+            if size of {_target} is 1:
+                kick first element of {_target} from event-guild due to "Kicked by moderator"
+                reply with "Member kicked successfully."
+            else:
+                reply with "Please mention a valid member."
+        else:
+            reply with "You don't have permission to kick members."
+
+    # Ban command
+    else if message starts with "!ban ":
+        if executor has permission "ban members":
+            set {_mention} to subtext of message from character 6 to length of message
+            set {_target} to mentioned members in message
+
+            if size of {_target} is 1:
+                ban first element of {_target} from event-guild due to "Banned by moderator"
+                reply with "Member banned successfully."
+            else:
+                reply with "Please mention a valid member."
+        else:
+            reply with "You don't have permission to ban members."
+```
+
+## Utility
+
+### Reaction Roles
+
+```applescript
+command /reactionrole <text> <text>:
+    permission: administrator
+    trigger:
+        # arg-1 = emoji, arg-2 = role name
+        set {_role} to role named arg-2 in event-guild
+        if {_role} is not set:
+            send "Role not found!"
+            stop
+
+        make embed:
+            set title of embed to "React to get a role!"
+            set description of embed to "React with %arg-1% to get the %mention tag of {_role}% role"
+            set embed color of embed to blue
+
+        reply with last embed and store it in {_message}
+
+        # Add reaction
+        add reaction arg-1 to {_message}
+
+        # Store data
+        set {reactionrole::%id of {_message}%::%arg-1%} to {_role}
+
+# Handle reactions
+on reaction add:
+    set {_role} to {reactionrole::%id of event-message%::%event-emote%}
+    if {_role} is set:
+        add {_role} to roles of event-member
+        # Send ephemeral message (requires slash command context)
+```
+
+### Auto-Delete Spam
+
+```applescript
+on message receive:
+    # Delete messages with too many mentions
+    if size of mentioned users in message > 5:
+        delete event-message
+
+        # Send warning (auto-delete after 5 seconds)
+        post "No spam allowed!" to event-channel and store it in {_warning}
+        wait 5 seconds
+        delete {_warning}
+```
+
+## Advanced Patterns
+
+### Cooldown System
+
+```applescript
+on message receive:
+    if message is "!daily":
+        set {_cooldown} to {cooldown::%id of event-user%}
+
+        if {_cooldown} is set:
+            set {_remaining} to difference between {_cooldown} and now
+            if {_remaining} is more than 0 seconds:
+                reply with "You can use this command again in %{_remaining}%"
+                stop
+
+        # Give reward
+        reply with "Here's your daily reward! 🎁"
+
+        # Set cooldown (24 hours)
+        set {cooldown::%id of event-user%} to 24 hours from now
+```
+
+### Paginated Embeds
+
+```applescript
+command /help:
+    trigger:
+        # Create pages
+        make embed and store it in {_page1}:
+            set title of embed to "Help - Page 1/3"
+            set description of embed to "Basic commands..."
+            set footer of embed to "Use the buttons to navigate"
+
+        make embed and store it in {_page2}:
+            set title of embed to "Help - Page 2/3"
+            set description of embed to "Advanced commands..."
+            set footer of embed to "Use the buttons to navigate"
+
+        make embed and store it in {_page3}:
+            set title of embed to "Help - Page 3/3"
+            set description of embed to "Admin commands..."
+            set footer of embed to "Use the buttons to navigate"
+
+        # Create buttons
+        make new component row and store it in {_row}:
+            add new primary button with id "prev" named "◀ Previous" to components of row builder
+            add new primary button with id "next" named "Next ▶" to components of row builder
+
+        # Send first page
+        reply with rich {_page1} with component row {_row}
+```
+
+<Aside type="tip">
+  These examples are starting points. Modify them to fit your specific needs!
+</Aside>
+
+## Best Practices Demonstrated
+
+These examples show:
+
+1. **Error handling** - Check if variables are set before using them
+2. **Permission checks** - Verify permissions before executing commands
+3. **User feedback** - Always reply to interactions
+4. **Clean code** - Use meaningful variable names
+5. **Documentation** - Add comments to explain complex logic
+
+## Next Steps
+
+- Check [Component Examples](/examples/components/) for more interaction examples
+- Learn about [Data Structures](/concepts/data-structures/) for cleaner code
+- Explore [Async Operations](/concepts/async/) for better performance
+- Read [Error Handling](/concepts/error-handling/) for robust bots
+
+<Aside type="note">
+  Remember to replace `YOUR_BOT_TOKEN_HERE` with your actual bot token!
+</Aside>

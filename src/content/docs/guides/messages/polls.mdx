@@ -1,0 +1,547 @@
+---
+title: Polls
+description: Create interactive polls to gather feedback and opinions from your community
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Polls are Discord's native voting system, perfect for gathering feedback, making community decisions, or just having fun. They're interactive, visual, and show live results to everyone.
+
+<Aside type="note" title="Available since v4.14.2">
+  Poll features were introduced in DiSky v4.14.2.
+</Aside>
+
+## What Are Polls?
+
+Every poll has:
+
+- **Question** - What you're asking
+- **Answers** - Options to vote for (up to 10)
+- **Duration** - How long voting stays open (1 hour to 7 days)
+- **Vote type** - Single choice or multiple choices
+- **Live results** - Everyone can see voting progress
+
+<Aside type="tip">
+  Polls work in any channel and can be sent by bots or users. Results are visible to everyone, even if they haven't voted.
+</Aside>
+
+## Creating a Basic Poll
+
+### Single Choice Poll
+
+```applescript
+command /poll <text>:
+    trigger:
+        # Create poll with question
+        set {_poll} to new poll "What's the best programming language?"
+
+        # Set duration (required)
+        set poll duration of {_poll} to 5 hours
+
+        # Add answer options
+        add answer "Java" with reaction "☕" to answers of {_poll}
+        add answer "Python" with reaction "🐍" to answers of {_poll}
+        add answer "JavaScript" with reaction "📜" to answers of {_poll}
+        add answer "C##" with reaction "🖥️" to answers of {_poll}
+
+        # Send the poll
+        reply with {_poll}
+```
+
+### Multiple Choice Poll
+
+Allow users to select multiple answers:
+
+```applescript
+command /multipoll:
+    trigger:
+        # Add "with multiple choices" for multi-select
+        set {_poll} to new poll "Which games do you play?" with multiple choices
+
+        set poll duration of {_poll} to 24 hours
+
+        add answer "Minecraft" with reaction "⛏️" to answers of {_poll}
+        add answer "Fortnite" with reaction "🎮" to answers of {_poll}
+        add answer "Valorant" with reaction "🎯" to answers of {_poll}
+        add answer "League of Legends" with reaction "🗡️" to answers of {_poll}
+        add answer "Other" with reaction "❓" to answers of {_poll}
+
+        reply with {_poll}
+```
+
+<Aside type="caution" title="Duration Limits">
+  Poll duration must be between **1 hour** and **7 days (1 week)**. Shorter or longer durations will fail.
+</Aside>
+
+## Poll Properties
+
+### Required Properties
+
+```applescript
+# Question (5-100 characters)
+set {_poll} to new poll "Your question here?"
+
+# Duration (1 hour to 7 days)
+set poll duration of {_poll} to 5 hours
+set poll duration of {_poll} to 2 days
+set poll duration of {_poll} to 1 week
+```
+
+### Optional Properties
+
+```applescript
+# Allow multiple selections
+set {_poll} to new poll "Question?" with multiple choices
+
+# Add answers (1-55 characters each)
+add answer "Option 1" with reaction "1️⃣" to answers of {_poll}
+add answer "Option 2" to answers of {_poll}  # Emoji optional
+```
+
+## Sending Polls
+
+<Tabs>
+<TabItem label="Standalone">
+
+Send only the poll:
+
+```applescript
+reply with {_poll}
+```
+
+</TabItem>
+<TabItem label="With Message">
+
+Include a message with the poll:
+
+```applescript
+reply with message "Hey everyone, check out my poll!" with poll {_poll}
+```
+
+</TabItem>
+<TabItem label="In Rich Message">
+
+Add poll to a rich message with embeds:
+
+```applescript
+create a new message and store it in {_msg}:
+    set content of message to "Vote now!"
+
+    make embed:
+        set title of embed to "Community Poll"
+        set description of embed to "Help us make decisions!"
+    add last embed to embeds of message
+
+    # Add poll
+    set poll of message to {_poll}
+
+reply with {_msg}
+```
+
+</TabItem>
+</Tabs>
+
+## Managing Existing Polls
+
+### Getting Poll Information
+
+```applescript
+# Get poll from message
+set {_message} to ... # Retrieved message
+set {_poll} to poll of {_message}
+
+# Check if message has a poll
+if {_poll} is not set:
+    reply with "This message doesn't have a poll."
+    stop
+
+# Get poll properties
+set {_question} to poll question of {_poll}
+set {_answers::*} to answers of {_poll}
+```
+
+### Reading Poll Results
+
+```applescript
+command /pollresults <text>:
+    trigger:
+        # Get message by ID
+        retrieve message with id arg-1 in event-channel and store it in {_msg}
+
+        set {_poll} to poll of {_msg}
+
+        if {_poll} is not set:
+            reply with "❌ That message doesn't contain a poll."
+            stop
+
+        # Build results
+        make embed:
+            set title of embed to "Poll Results"
+            set description of embed to "**Question:** %poll question of {_poll}%"
+
+            # Loop through answers
+            set {_answers::*} to answers of {_poll}
+            loop {_answers::*}:
+                set {_text} to answer text of loop-value
+                set {_votes} to answer votes of loop-value
+                set {_emoji} to answer emote of loop-value
+
+                if {_emoji} is set:
+                    set {_line} to "%mention tag of {_emoji}% %{_text}%: **%{_votes}% votes**"
+                else:
+                    set {_line} to "%{_text}%: **%{_votes}% votes**"
+
+                add field named "Option %loop-index%" with value {_line} to fields of embed
+
+            set embed color of embed to blue
+
+        reply with last embed
+```
+
+### Answer Properties
+
+Each answer has:
+
+```applescript
+# Get answer details
+set {_text} to answer text of {_answer}      # The answer text
+set {_votes} to answer votes of {_answer}    # Number of votes
+set {_emoji} to answer emote of {_answer}    # Emoji (may be null)
+```
+
+## Poll States
+
+### Checking Poll Status
+
+<Tabs>
+<TabItem label="Is Expired">
+
+```applescript
+if poll of {_message} is expired:
+    reply with "This poll has ended. No more votes can be cast."
+```
+
+Poll is completely closed, voting is impossible.
+
+</TabItem>
+<TabItem label="Is Finalized">
+
+```applescript
+if poll of {_message} is finalized:
+    reply with "This poll is finalized."
+```
+
+Poll is finished but votes can technically still be cast.
+
+</TabItem>
+</Tabs>
+
+## Practical Examples
+
+### Quick Poll Command
+
+```applescript
+command /quickpoll <text> <number>:
+    trigger:
+        set {_question} to arg-1
+        set {_hours} to arg-2
+
+        set {_poll} to new poll {_question}
+        set poll duration of {_poll} to {_hours} hours
+
+        add answer "Yes" with reaction "✅" to answers of {_poll}
+        add answer "No" with reaction "❌" to answers of {_poll}
+        add answer "Maybe" with reaction "🤔" to answers of {_poll}
+
+        reply with {_poll}
+```
+
+### Event Planning Poll
+
+```applescript
+command /eventpoll:
+    trigger:
+        set {_poll} to new poll "When should we host the next event?" with multiple choices
+        set poll duration of {_poll} to 3 days
+
+        add answer "Friday Evening" with reaction "🌙" to answers of {_poll}
+        add answer "Saturday Morning" with reaction "🌅" to answers of {_poll}
+        add answer "Saturday Evening" with reaction "🌆" to answers of {_poll}
+        add answer "Sunday Afternoon" with reaction "☀️" to answers of {_poll}
+
+        create a new message and store it in {_msg}:
+            set content of message to "@everyone Vote for the best time!"
+
+            make embed:
+                set title of embed to "📅 Event Time Poll"
+                set description of embed to "Help us choose when to host the next community event. You can select multiple times that work for you!"
+                set embed color of embed to purple
+            add last embed to embeds of message
+
+            set poll of message to {_poll}
+
+        reply with {_msg}
+```
+
+### Feedback Poll
+
+```applescript
+command /feedback:
+    trigger:
+        set {_poll} to new poll "How would you rate your experience today?"
+        set poll duration of {_poll} to 12 hours
+
+        add answer "Excellent" with reaction "⭐" to answers of {_poll}
+        add answer "Good" with reaction "👍" to answers of {_poll}
+        add answer "Okay" with reaction "👌" to answers of {_poll}
+        add answer "Poor" with reaction "👎" to answers of {_poll}
+        add answer "Very Poor" with reaction "💔" to answers of {_poll}
+
+        make embed:
+            set title of embed to "💭 We Value Your Feedback"
+            set description of embed to "Please take a moment to rate your experience with our service today."
+            set embed color of embed to blue
+            set footer of embed to "Your feedback helps us improve!"
+
+        reply with last embed with poll {_poll}
+```
+
+### Community Decision Poll
+
+```applescript
+command /vote <text>:
+    trigger:
+        # Check permissions
+        if event-user doesn't have permission "MANAGE_GUILD":
+            reply with hidden "❌ Only moderators can create official votes!"
+            stop
+
+        set {_topic} to arg-1
+
+        set {_poll} to new poll {_topic}
+        set poll duration of {_poll} to 7 days
+
+        add answer "Strongly Agree" with reaction "💚" to answers of {_poll}
+        add answer "Agree" with reaction "✅" to answers of {_poll}
+        add answer "Neutral" with reaction "➖" to answers of {_poll}
+        add answer "Disagree" with reaction "❌" to answers of {_poll}
+        add answer "Strongly Disagree" with reaction "❤️" to answers of {_poll}
+
+        make embed:
+            set title of embed to "🗳️ Official Community Vote"
+            set description of embed to {_topic}
+            set author of embed to discord name of event-user
+            set author icon of embed to avatar of event-user
+            set embed color of embed to gold
+            set footer of embed to "This poll will close in 7 days"
+
+        reply with last embed with poll {_poll}
+```
+
+### Auto-Close Poll Notification
+
+```applescript
+# Store poll message IDs when created
+command /createpoll <text>:
+    trigger:
+        set {_poll} to new poll arg-1
+        set poll duration of {_poll} to 2 hours
+
+        add answer "Option A" to answers of {_poll}
+        add answer "Option B" to answers of {_poll}
+
+        reply with {_poll} and store it in {_pollMsg}
+
+        # Store for later checking
+        set {polls::%discord id of {_pollMsg}%} to now
+        set {poll-channel::%discord id of {_pollMsg}%} to event-channel
+
+# Check expired polls periodically
+every 5 minutes:
+    loop {polls::*}:
+        set {_msgId} to loop-index
+        set {_channel} to {poll-channel::%{_msgId}%}
+
+        retrieve message with id {_msgId} in {_channel} and store it in {_msg}
+
+        if {_msg} is set:
+            set {_poll} to poll of {_msg}
+
+            if {_poll} is expired:
+                # Post results
+                post "📊 Poll has ended! Final results available above." to {_channel}
+
+                # Clean up storage
+                delete {polls::%{_msgId}%}
+                delete {poll-channel::%{_msgId}%}
+```
+
+### Poll with Winner Announcement
+
+```applescript
+command /competitionpoll <text>:
+    trigger:
+        set {_question} to arg-1
+
+        set {_poll} to new poll {_question}
+        set poll duration of {_poll} to 1 day
+
+        add answer "Entry 1" with reaction "1️⃣" to answers of {_poll}
+        add answer "Entry 2" with reaction "2️⃣" to answers of {_poll}
+        add answer "Entry 3" with reaction "3️⃣" to answers of {_poll}
+        add answer "Entry 4" with reaction "4️⃣" to answers of {_poll}
+
+        reply with {_poll} and store it in {_msg}
+
+        # Schedule winner announcement
+        wait 1 day
+
+        retrieve message with id discord id of {_msg} in event-channel and store it in {_updated}
+        set {_poll} to poll of {_updated}
+
+        # Find winner
+        set {_answers::*} to answers of {_poll}
+        set {_maxVotes} to 0
+        set {_winner} to "None"
+
+        loop {_answers::*}:
+            set {_votes} to answer votes of loop-value
+            if {_votes} > {_maxVotes}:
+                set {_maxVotes} to {_votes}
+                set {_winner} to answer text of loop-value
+
+        make embed:
+            set title of embed to "🏆 Poll Results Are In!"
+            set description of embed to "**Winner:** %{_winner}% with %{_maxVotes}% votes!"
+            set embed color of embed to gold
+
+        post last embed to event-channel
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Clear Questions**
+
+   Write specific, unambiguous questions. "What's your favorite?" is better than "Which one?"
+
+2. **Appropriate Duration**
+
+   Short polls (2-6 hours) for quick decisions, longer polls (3-7 days) for important choices.
+
+3. **Meaningful Options**
+
+   Provide distinct, relevant answer choices. Avoid overlap or confusion.
+
+4. **Use Emojis**
+
+   Emojis make polls more visual and answers easier to identify.
+
+5. **Single vs Multiple**
+
+   Use single choice for exclusive decisions, multiple choice when users can pick several.
+
+6. **Announce Closure**
+
+   Notify your community when important polls are about to close.
+
+7. **Share Results**
+
+   Post a summary or announcement of poll results after closing.
+
+</Steps>
+
+## Common Use Cases
+
+### Server Decisions
+```applescript
+"Should we add a new channel category?"
+- Yes, definitely
+- Maybe, let's discuss
+- No, keep it as is
+```
+
+### Event Planning
+```applescript
+"What type of event should we host next?"
+- Gaming tournament
+- Movie night
+- Art contest
+- Q&A session
+```
+
+### Feature Voting
+```applescript
+"Which bot feature should we prioritize?"
+- Music commands
+- Moderation tools
+- Fun games
+- Custom roles
+```
+
+### Feedback Collection
+```applescript
+"How satisfied are you with the server?"
+- Very satisfied
+- Satisfied
+- Neutral
+- Dissatisfied
+- Very dissatisfied
+```
+
+## Troubleshooting
+
+### Poll Not Sending
+
+**Problem:** Poll fails to send.
+
+**Solutions:**
+- Check question is 5-100 characters
+- Verify duration is between 1 hour and 7 days
+- Ensure at least 1 answer is added
+- Check answer text is 1-55 characters
+- Verify you haven't exceeded 10 answers
+
+### Can't Get Poll Results
+
+**Problem:** Poll returns null or can't access answers.
+
+**Solutions:**
+- Verify message actually contains a poll
+- Check message was retrieved successfully
+- Ensure you're using correct syntax for answer properties
+- Wait for poll to finalize for accurate vote counts
+
+### Duration Error
+
+**Problem:** Invalid duration error.
+
+**Solutions:**
+- Use hours/days format: `5 hours`, `2 days`, `1 week`
+- Ensure duration is at least 1 hour
+- Don't exceed 7 days maximum
+- Use whole numbers (no decimals for days)
+
+### Missing Votes
+
+**Problem:** Vote counts seem incorrect.
+
+**Explanation:** If poll isn't finalized, counts may not be final. Users can change votes until the poll closes.
+
+**Solution:** Check poll status with `is finalized` condition before announcing results.
+
+## Poll Limits
+
+- **Question**: 5-100 characters
+- **Answer text**: 1-55 characters
+- **Answers per poll**: 10 maximum
+- **Duration**: 1 hour to 7 days
+- **Polls per message**: 1 only
+
+## Next Steps
+
+- Create interactive [Buttons and Dropdowns](/guides/interactions/components/)
+- Build [Advanced Messages](/guides/messages/advanced-messages/) with embeds
+- Learn about [Slash Commands](/guides/interactions/slash-commands/)
+- Understand [Message Wrappers](/guides/messages/message-wrapper/) for tracking

@@ -1,0 +1,487 @@
+---
+title: Asynchronous Operations
+description: Understand how DiSky handles asynchronous operations and API requests
+---
+
+import { Aside, Tabs, TabItem, Code } from '@astrojs/starlight/components';
+
+DiSky is built with asynchronous functionality at its core. Understanding how async operations work is crucial for writing efficient, performant Discord bots that don't block your Minecraft server's main thread.
+
+<Aside type="note" title="Available since v4.18.0">
+  Async handling and the `await` keyword were introduced in DiSky v4.18.0, with improvements in v4.17.2.
+</Aside>
+
+## What Are Asynchronous Operations?
+
+In programming, **asynchronous** (async) operations are tasks that run in the background without blocking other code from executing. This is especially important for Discord bots because:
+
+- Discord API requests take time (network latency, processing, etc.)
+- Your Minecraft server shouldn't freeze while waiting for Discord
+- Multiple operations can happen simultaneously
+
+DiSky automatically handles most operations asynchronously, keeping your server responsive even when communicating with Discord's API.
+
+## How DiSky Handles API Requests
+
+DiSky operations fall into two categories:
+
+### Cached Operations (Instant)
+
+These retrieve data that DiSky has already stored locally:
+
+```applescript
+# Getting a channel's name (cached)
+set {_name} to discord name of {_channel}
+
+# Getting a user's ID (cached)
+set {_id} to discord id of {_user}
+
+# Getting a guild's member count (cached)
+set {_count} to size of all members of {_guild}
+```
+
+These operations are **instant** because they don't need to contact Discord's API. DiSky maintains a local cache of commonly accessed data.
+
+### API-Dependent Operations (Asynchronous)
+
+These require communicating with Discord:
+
+```applescript
+# Changing a channel's name (requires API call)
+set discord name of {_channel} to "new-name"
+
+# Sending a message (requires API call)
+post "Hello!" to {_channel}
+
+# Creating a role (requires API call)
+create new role named "Member" in {_guild}
+```
+
+By default, these operations are **queued and executed in the background**. Your code continues immediately without waiting for Discord to respond.
+
+## The Problem with Async by Default
+
+While async operations keep your server responsive, they can cause unexpected behavior:
+
+```applescript
+# Set channel name
+set discord name of {_channel} to "new-channel"
+
+# This might run BEFORE Discord updates the channel!
+broadcast "Channel name changed to new-channel"
+```
+
+The broadcast happens immediately, but Discord might not have processed the name change yet. Your code doesn't wait for confirmation.
+
+## Understanding Execution Flow
+
+<Tabs>
+<TabItem label="Without await">
+
+**Without `await`, operations queue in the background:**
+
+```applescript
+# 1. Queue the name change
+set discord name of {_channel} to "announcements"
+
+# 2. This runs IMMEDIATELY (doesn't wait)
+broadcast "Done!"
+
+# 3. Discord processes the change later
+```
+
+**Timeline:**
+1. Code queues API request
+2. Code continues immediately
+3. Broadcast happens
+4. Discord processes request (later)
+
+This is **non-blocking** but **unpredictable**.
+
+</TabItem>
+<TabItem label="With await">
+
+**With `await`, code waits for completion:**
+
+```applescript
+# 1. Send request and WAIT for Discord
+await set discord name of {_channel} to "announcements"
+
+# 2. This runs AFTER Discord confirms
+broadcast "Done!"
+```
+
+**Timeline:**
+1. Code sends API request
+2. Code waits for Discord response
+3. Discord processes and responds
+4. Code continues
+5. Broadcast happens
+
+This is **blocking** but **predictable**.
+
+</TabItem>
+</Tabs>
+
+<Aside type="tip">
+  The `await` keyword blocks your script but **not the Minecraft server's main thread**. Other scripts and server operations continue normally.
+</Aside>
+
+## Using the `await` Keyword
+
+Prefix any API-dependent operation with `await` to wait for its completion:
+
+### Setting Values
+
+```applescript
+# Without await (queued)
+set discord name of {_channel} to "general"
+
+# With await (waits for confirmation)
+await set discord name of {_channel} to "general"
+```
+
+### Getting Values with Better Caching
+
+Some operations that normally use cache will fetch fresh data when using `await`:
+
+```applescript
+# Uses cache only
+set {_user} to user with id "123456789"
+
+# Always sends API request
+set {_user} to retrieve user with id "123456789"
+
+# Sends API request ONLY if not in cache
+await set {_user} to user with id "123456789"
+```
+
+<Aside type="tip" title="Smart Caching">
+  Using `await` with retrieval operations gives you the best of both worlds: it uses cache when available, but fetches fresh data when needed.
+</Aside>
+
+## When to Use `await`
+
+Use `await` when:
+
+### 1. You Need Confirmation
+
+```applescript
+on slash command:
+    if event-string is "rename":
+        set {_channel} to event-channel
+        set {_newName} to argument "name" as string
+
+        # Wait for the rename to complete
+        await set discord name of {_channel} to {_newName}
+
+        # This confirmation is accurate
+        reply with "✅ Channel renamed to %{_newName}%"
+```
+
+### 2. Sequential Operations Depend on Each Other
+
+```applescript
+# Create a role and immediately assign it
+await create new role named "VIP" in event-guild and store it in {_role}
+
+# This only works if the role was created first
+add {_role} to roles of event-user
+
+reply with "VIP role created and assigned!"
+```
+
+### 3. You Need Fresh Data
+
+```applescript
+# Get the latest user info from Discord
+await set {_user} to user with id {_id}
+
+# This data is guaranteed to be current
+set {_username} to discord name of {_user}
+```
+
+### 4. Error Handling is Critical
+
+```applescript
+try:
+    # Wait to see if the message sends successfully
+    await post {_message} to {_channel}
+    reply with "Message sent!"
+catch {_error}:
+    reply with "Failed to send: %{_error}%"
+```
+
+## When NOT to Use `await`
+
+Don't use `await` when:
+
+### 1. You Don't Need Confirmation
+
+```applescript
+# Fire and forget - we don't care when it completes
+post "Welcome!" to {_channel}
+
+# Continue with other work
+# ...
+```
+
+### 2. You Want Maximum Performance
+
+```applescript
+# Send multiple messages quickly (don't wait for each)
+loop 10 times:
+    post "Message %loop-number%" to {_channel}
+
+# Much faster than awaiting each one
+```
+
+### 3. Operations Are Independent
+
+```applescript
+# These can all happen simultaneously
+post "Message 1" to {_channel1}
+post "Message 2" to {_channel2}
+post "Message 3" to {_channel3}
+
+# No need to wait - they don't depend on each other
+```
+
+## Practical Examples
+
+### Safe Role Assignment
+
+```applescript
+command /giverole <user> <text>:
+    trigger:
+        set {_target} to arg-1
+        set {_roleName} to arg-2
+
+        # Create the role and wait for confirmation
+        await create new role named {_roleName} in event-guild and store it in {_role}
+
+        # Now we know the role exists
+        add {_role} to roles of {_target}
+
+        reply with "✅ Created role %{_roleName}% and assigned to %mention tag of {_target}%"
+```
+
+### Channel Setup with Dependencies
+
+```applescript
+command /setup:
+    trigger:
+        # Create category first
+        await create new category channel named "Support" in event-guild and store it in {_category}
+
+        # Create text channel in that category
+        await create new text channel named "tickets" in {_category} and store it in {_channel}
+
+        # Set permissions (depends on channel existing)
+        await set {_channel}'s permission for event-guild to deny viewing
+
+        reply with "✅ Support system set up successfully!"
+```
+
+### Bulk Operations Without Waiting
+
+```applescript
+command /announce <text>:
+    trigger:
+        set {_message} to arg-1
+
+        # Get all text channels
+        set {_channels::*} to all text channels of event-guild
+
+        # Send to all channels without waiting
+        loop {_channels::*}:
+            post {_message} to loop-value
+
+        # Reply immediately (don't wait for all messages)
+        reply with "📢 Announcement sent to %size of {_channels::*}% channels!"
+```
+
+### Mixed Approach
+
+```applescript
+command /setuproles:
+    trigger:
+        # Create roles and wait (we need them to exist)
+        await create new role named "Member" in event-guild and store it in {_member}
+        await create new role named "VIP" in event-guild and store it in {_vip}
+        await create new role named "Admin" in event-guild and store it in {_admin}
+
+        # Configure role colors (don't need to wait)
+        set color of {_member} to gray
+        set color of {_vip} to gold
+        set color of {_admin} to red
+
+        # Confirm when creation is done
+        reply with "✅ Roles created successfully!"
+```
+
+## Performance Considerations
+
+### Awaiting in Loops
+
+Be careful when using `await` in loops - it can slow things down significantly:
+
+```applescript
+# SLOW: Waits for each message individually
+loop {_users::*}:
+    await post "Hello!" to dm channel of loop-value
+
+# FAST: Sends all at once
+loop {_users::*}:
+    post "Hello!" to dm channel of loop-value
+```
+
+### Parallel Operations
+
+When operations are independent, let them run in parallel:
+
+```applescript
+# These all execute simultaneously (fast)
+post "Message 1" to {_channel1}
+post "Message 2" to {_channel2}
+post "Message 3" to {_channel3}
+
+# Wait only for the critical one if needed
+await post "Important!" to {_important_channel}
+```
+
+## Common Pitfalls
+
+### Assuming Instant Updates
+
+```applescript
+# WRONG: Assumes immediate update
+set discord name of {_channel} to "new-name"
+broadcast discord name of {_channel}  # Might show old name!
+
+# RIGHT: Wait for update
+await set discord name of {_channel} to "new-name"
+broadcast discord name of {_channel}  # Shows new name
+```
+
+### Over-Using await
+
+```applescript
+# SLOW: Unnecessarily waits for each
+await post "Line 1" to {_channel}
+await post "Line 2" to {_channel}
+await post "Line 3" to {_channel}
+
+# BETTER: Only wait for the last one if needed
+post "Line 1" to {_channel}
+post "Line 2" to {_channel}
+await post "Line 3" to {_channel}  # Wait only if you need confirmation
+```
+
+### Forgetting Dependencies
+
+```applescript
+# WRONG: Might try to use role before it's created
+create new role named "Test" in event-guild and store it in {_role}
+add {_role} to roles of event-user  # {_role} might be null!
+
+# RIGHT: Wait for creation
+await create new role named "Test" in event-guild and store it in {_role}
+add {_role} to roles of event-user  # {_role} definitely exists
+```
+
+## Visual Guide
+
+**Without `await`:**
+```
+Your Code          DiSky          Discord API
+    |                |                  |
+    |-- Request ---->|                  |
+    |                |-- Send Request -->|
+    |                |                  |
+    |                |                  |-- Processing
+    |                |                  |
+Continue here        |                  |
+    |                |<-- Response -----|
+```
+
+**With `await`:**
+```
+Your Code          DiSky          Discord API
+    |                |                  |
+    |-- Request ---->|                  |
+    |                |-- Send Request -->|
+    |                |                  |
+    |                |                  |-- Processing
+    |                |                  |
+Wait here...         |                  |
+    |                |<-- Response -----|
+    |<-- Done -------|                  |
+Continue here        |                  |
+```
+
+## Best Practices
+
+1. **Use `await` for critical operations** - When you need confirmation or the result
+2. **Don't use `await` unnecessarily** - It slows down your bot
+3. **Batch independent operations** - Let them run in parallel
+4. **Always await before using results** - If you need the created/updated object
+5. **Consider error handling** - Use try/catch with awaited operations
+6. **Profile your code** - If something seems slow, check if you're over-using `await`
+
+## Troubleshooting
+
+### Variables Are Null/Empty
+
+**Problem:** You try to use a value immediately after creating it.
+
+**Solution:** Use `await` to wait for creation.
+
+```applescript
+# Before (broken)
+create new role named "Test" in event-guild and store it in {_role}
+broadcast discord name of {_role}  # Null!
+
+# After (fixed)
+await create new role named "Test" in event-guild and store it in {_role}
+broadcast discord name of {_role}  # Works!
+```
+
+### Operations Seem Slow
+
+**Problem:** Everything takes a long time.
+
+**Solution:** Remove unnecessary `await` keywords.
+
+```applescript
+# Slow
+loop 100 times:
+    await post "Message" to {_channel}
+
+# Fast
+loop 100 times:
+    post "Message" to {_channel}
+```
+
+### Race Conditions
+
+**Problem:** Sometimes things work, sometimes they don't.
+
+**Solution:** Use `await` for operations that depend on each other.
+
+```applescript
+# Unreliable
+create new channel named "test" and store it in {_ch}
+set topic of {_ch} to "Testing"  # Might fail!
+
+# Reliable
+await create new channel named "test" and store it in {_ch}
+await set topic of {_ch} to "Testing"
+```
+
+## Next Steps
+
+- Learn about [Error Handling](/concepts/error-handling/) with try/catch
+- Understand [Data Structures](/concepts/data-structures/) for cleaner code
+- Explore [Interactive Components](/guides/interactions/components/)
+- Build [Advanced Messages](/guides/messages/advanced-messages/)

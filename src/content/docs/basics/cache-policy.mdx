@@ -1,0 +1,289 @@
+---
+title: Cache Policy & Flags
+description: Optimize your bot's performance with cache policies and flags
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When defining a bot, you can control how DiSky caches members and other Discord entities. Proper cache configuration optimizes memory usage and performance.
+
+## Member Cache Policy
+
+The cache policy determines **which members** are cached and accessible without retrieval.
+
+### Available Policies
+
+| Policy | Description | Required Intent |
+|--------|-------------|----------------|
+| `all` | Cache all members in all guilds | Guild Members (privileged) |
+| `none` | Don't cache any members | None |
+| `owner` | Cache only guild owners | None |
+| `online` | Cache only online members | Guild Presences (privileged) |
+| `voice` | Cache only members in voice channels | Guild Voice States |
+| `booster` | Cache only server boosters | Guild Members (privileged) |
+| `default` | Default policy (recommended) | Guild Members + Guild Presences |
+
+### How It Works
+
+Members in cache can be accessed instantly using getters:
+
+```applescript
+# If member is cached, this works instantly
+set {_member} to member with id "123" in {_guild}
+```
+
+Members not in cache must be **retrieved** (requires API call):
+
+```applescript
+# If member is not cached, you must retrieve it
+retrieve member with id "123" from {_guild} and store it in {_member}
+# Use {_member} here
+```
+
+### Choosing a Policy
+
+**Use `all`** if:
+- You need access to all members
+- Your bot manages members
+- You have the Guild Members intent
+
+**Use `online`** if:
+- You only work with online members
+- You want to save memory
+- You have the Guild Presences intent
+
+**Use `none`** if:
+- You don't work with members
+- You only use slash commands
+- You want minimal memory usage
+
+**Use `default`** if:
+- You're unsure what you need
+- You want balanced performance
+
+<Aside type="tip">
+  For most bots, `all` is the best choice if you have the required intents enabled.
+</Aside>
+
+## Cache Flags
+
+Cache flags determine **what data** is cached about entities.
+
+### Available Flags
+
+| Flag | Description | Required Intent |
+|------|-------------|----------------|
+| `activity` | Member activities (playing, streaming, etc.) | Guild Presences (privileged) |
+| `voice state` | Member voice channel states | Guild Voice States |
+| `emoji` | Guild emojis | Guild Emojis and Stickers |
+| `sticker` | Guild stickers | Guild Emojis and Stickers |
+| `client status` | Member device status (mobile, desktop, web) | Guild Presences (privileged) |
+| `member overrides` | Member permission overrides | None |
+| `role tags` | Role tags (bot role, booster role, etc.) | None |
+| `forum tags` | Forum tags and thread tags | None |
+| `online status` | Member online status | Guild Presences (privileged) |
+| `scheduled events` | Guild scheduled events | Scheduled Events |
+
+### Special Options
+
+| Option | Description |
+|--------|-------------|
+| `all` | Enable all cache flags |
+| `none` | Disable all cache flags |
+| `default cache` | Enable `activity`, `voice state`, and `online status` |
+
+### Choosing Cache Flags
+
+**Use `default cache`** for most bots:
+
+```applescript
+cache flags: default cache
+```
+
+This enables:
+- Activity (what members are playing)
+- Voice state (voice channel presence)
+- Online status (online, idle, dnd, offline)
+
+**Use specific flags** if you have special needs:
+
+```applescript
+# Only cache what you need
+cache flags: emoji, sticker, forum tags
+```
+
+**Use `all`** if you need everything:
+
+```applescript
+cache flags: all
+```
+
+**Use `none`** for minimal memory:
+
+```applescript
+cache flags: none
+```
+
+<Aside type="caution" title="Memory Usage">
+  More cache flags = more memory usage. Only enable what you actually use!
+</Aside>
+
+## Examples
+
+### Minimal Configuration
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: guild messages
+    policy: none
+    cache flags: none
+```
+
+Use when:
+- Only using slash commands
+- No member management
+- Minimal memory footprint needed
+
+### Standard Configuration
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: default intents, guild members, message content
+    policy: all
+    cache flags: default cache
+```
+
+Use when:
+- Working with members
+- Need member status
+- General-purpose bot
+
+### Voice Bot Configuration
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: default intents, guild voice states
+    policy: voice
+    cache flags: voice state
+```
+
+Use when:
+- Music/voice bot
+- Only need members in voice
+- Want to optimize memory
+
+### Emoji/Sticker Bot
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: default intents, guild expressions
+    policy: none
+    cache flags: emoji, sticker
+```
+
+Use when:
+- Managing emojis/stickers
+- Don't need member data
+
+### Full-Featured Bot
+
+```applescript
+define new bot named "MyBot":
+    token: "YOUR_TOKEN"
+    intents: all intents
+    policy: all
+    cache flags: all
+```
+
+Use when:
+- Need all features
+- Memory is not a concern
+- Want maximum functionality
+
+## Impact on Performance
+
+### Memory Usage
+
+More caching = more memory usage:
+
+```
+none < owner < booster < voice < online < all
+```
+
+### API Calls
+
+Less caching = more API calls needed:
+
+- **Cached data**: Instant access, no API call
+- **Uncached data**: Must retrieve, requires API call + time
+
+### Finding Balance
+
+For most bots, this is optimal:
+
+```applescript
+policy: all
+cache flags: default cache
+```
+
+It provides:
+- Instant member access
+- Status/activity information
+- Voice state tracking
+- Reasonable memory usage
+
+## Troubleshooting
+
+### "Member not found" Error
+
+Your member might not be cached.
+
+**Solutions**:
+1. Use a wider cache policy (e.g., `all`)
+2. Enable Guild Members intent
+3. Retrieve the member instead of getting it:
+   ```applescript
+   retrieve member with id "123" from {_guild} and store it in {_member}
+   ```
+
+### High Memory Usage
+
+You're caching too much.
+
+**Solutions**:
+1. Use a narrower policy (`online`, `voice`, or `none`)
+2. Reduce cache flags to only what you need
+3. Don't use `all` for policy and cache flags unless necessary
+
+### Activity/Status Not Available
+
+You need cache flags enabled.
+
+**Solution**:
+```applescript
+cache flags: activity, online status
+```
+
+And enable Guild Presences intent.
+
+## Best Practices
+
+1. **Start with defaults** - They work for most bots
+2. **Enable required intents** - Cache flags won't work without proper intents
+3. **Monitor memory** - Adjust cache settings if memory is an issue
+4. **Cache what you use** - Don't cache data you never access
+5. **Consider bot size** - Large bots (100+ servers) should be more conservative with caching
+
+<Aside type="tip">
+  The default settings (`policy: all`, `cache flags: default cache`) are optimized for most use cases. Start there and adjust only if needed!
+</Aside>
+
+## Next Steps
+
+- Learn about [Gateway Intents](/basics/gateway-intents/)
+- Configure [Presence & Status](/basics/presence-status/)
+- Understand [Bot Configuration](/basics/bot-configuration/)

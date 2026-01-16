@@ -1,0 +1,276 @@
+---
+title: Simple Messages
+description: Learn how to send text messages and embeds with DiSky
+---
+
+import { Aside, Tabs, TabItem, Code } from '@astrojs/starlight/components';
+
+DiSky makes it easy to send messages to Discord channels. This guide covers simple text messages and embeds.
+
+## Sending Text Messages
+
+The simplest way to send a message is using the `post` or `reply` effects.
+
+### Replying to Events
+
+Use `reply with` inside DiSky events (like slash commands or message events):
+
+```applescript
+on message receive:
+    reply with "Hello there!"
+```
+
+### Posting to Channels
+
+Use `post` to send messages to specific channels:
+
+```applescript
+# Post to a specific channel
+post "Hello World!" to text channel with id "123456789"
+
+# Post to a channel variable
+post "Hello!" to {_channel}
+```
+
+<Aside type="tip">
+  Use `reply with` whenever possible in events - it's simpler and automatically targets the correct channel.
+</Aside>
+
+## Creating Embeds
+
+Embeds are rich messages with colors, images, fields, and more. They make your bot's messages look professional and organized.
+
+### Embed Components
+
+An embed can have:
+
+- **Title** (with optional URL)
+- **Description** (main text content)
+- **Author** (with optional icon and URL)
+- **Color** (left border color)
+- **Fields** (inline or full-width)
+- **Footer** (with optional icon)
+- **Thumbnail** (small image in top-right)
+- **Image** (large image)
+- **Timestamp**
+
+### Basic Embed Example
+
+```applescript
+make embed and store it in {_embed}:
+    set title of embed to "Welcome!"
+    set description of embed to "Thanks for joining our server"
+    set embed color of embed to blue
+    set footer of embed to "DiSky Bot"
+
+reply with {_embed}
+```
+
+### Complete Embed Example
+
+Here's an embed using all available properties:
+
+```applescript
+make embed and store it in {_embed}:
+    # Title (clickable if URL is provided)
+    set title of embed to "Embed Title"
+    set title url of embed to "https://example.com"
+
+    # Main content
+    set description of embed to "This is the embed description%nl%It supports multiple lines!"
+
+    # Author section
+    set author of embed to "Author Name"
+    set author icon of embed to "https://example.com/icon.png"
+    set author url of embed to "https://example.com"
+
+    # Color (left border)
+    set embed color of embed to orange
+
+    # Fields (can be inline or not)
+    add inline field named "Field 1" with value "Inline field" to fields of embed
+    add inline field named "Field 2" with value "Another inline" to fields of embed
+    add inline field named "Field 3" with value "Third inline" to fields of embed
+    add field named "Full Width" with value "This field spans the full width" to fields of embed
+
+    # Footer
+    set footer of embed to "Footer Text"
+    set footer icon of embed to "https://example.com/footer-icon.png"
+
+    # Images
+    set thumbnail of embed to "https://example.com/thumbnail.png"
+    set image of embed to "https://example.com/image.png"
+
+    # Timestamp (shows "Today at XX:XX")
+    set timestamp of embed to now
+
+reply with {_embed}
+```
+
+<Aside type="caution" title="Sub-Properties Requirement">
+  You cannot set sub-properties (like author icon) without setting the main property (author) first.
+</Aside>
+
+### Field Layouts
+
+Fields can be inline (up to 3 per row) or full-width:
+
+```applescript
+make embed:
+    # Inline fields (up to 3 per row)
+    add inline field named "CPU" with value "45%%" to fields of embed
+    add inline field named "RAM" with value "2.1 GB" to fields of embed
+    add inline field named "Disk" with value "67%%" to fields of embed
+
+    # Full-width field
+    add field named "Status" with value "All systems operational" to fields of embed
+```
+
+<Aside type="tip">
+  When an image is included, only 2 inline fields can fit per row instead of 3.
+</Aside>
+
+## Color Options
+
+You can set embed colors in several ways:
+
+<Tabs>
+<TabItem label="Named Colors">
+
+```applescript
+set embed color of embed to orange
+set embed color of embed to blue
+set embed color of embed to red
+set embed color of embed to green
+```
+
+</TabItem>
+<TabItem label="Hex Colors">
+
+```applescript
+set embed color of embed to hex "#FF5733"
+set embed color of embed to hex "#00FF00"
+```
+
+</TabItem>
+<TabItem label="RGB Colors">
+
+```applescript
+set embed color of embed to rgb(255, 87, 51)
+```
+
+</TabItem>
+</Tabs>
+
+## Embed Templates (v4.26.0+)
+
+Reuse embeds across your bot by registering templates:
+
+### Registering a Template
+
+```applescript
+# Define once (e.g., on script load)
+register embed "welcome":
+    set title of embed to "Welcome!"
+    set embed color of embed to blue
+    set description of embed to "Thanks for joining our server!"
+    set footer of embed to "We hope you enjoy your stay"
+```
+
+### Using a Template
+
+```applescript
+# Use anywhere
+reply with embed template "welcome"
+post embed template "welcome" to {_channel}
+```
+
+<Aside type="tip" title="Why Use Templates?">
+  Templates are perfect for frequently used embeds like welcome messages, error messages, or help embeds. Define once, use everywhere!
+</Aside>
+
+## Practical Examples
+
+### Server Statistics Embed
+
+```applescript
+command /stats:
+    trigger:
+        make embed and store it in {_embed}:
+            set title of embed to "Server Statistics"
+            set embed color of embed to green
+            add inline field named "Members" with value "%size of all members%" to fields of embed
+            add inline field named "Online" with value "%size of online members%" to fields of embed
+            add inline field named "Channels" with value "%size of all channels%" to fields of embed
+            set footer of embed to "Last updated"
+            set timestamp of embed to now
+
+        reply with {_embed}
+```
+
+### User Profile Embed
+
+```applescript
+on message receive:
+    if message is "/profile":
+        make embed:
+            set title of embed to "User Profile"
+            set author of embed to discord name of event-user
+            set author icon of embed to avatar of event-user
+            set embed color of embed to blue
+            add field named "User ID" with value id of event-user to fields of embed
+            add field named "Account Created" with value "%creation date of event-user%" to fields of embed
+            set thumbnail of embed to avatar of event-user
+
+        reply with last embed
+```
+
+### Error Message Template
+
+```applescript
+# Register error template
+register embed "error":
+    set title of embed to "❌ Error"
+    set embed color of embed to red
+    set footer of embed to "If this persists, contact support"
+
+# Use in commands
+on slash command:
+    if event-user doesn't have permission "admin":
+        # You can modify templates when using them
+        make embed based on embed template "error":
+            set description of embed to "You don't have permission to use this command."
+        reply with last embed
+```
+
+## Best Practices
+
+1. **Use embeds for rich content** - They're more visually appealing than plain text
+2. **Keep titles short** - Long titles get truncated
+3. **Use colors meaningfully** - Green for success, red for errors, blue for info
+4. **Don't overuse fields** - Too many fields make embeds cluttered
+5. **Add timestamps for time-sensitive info** - Shows when the embed was created
+6. **Use templates for repeated embeds** - Saves time and ensures consistency
+
+## Limitations
+
+- Text messages: 2000 characters max
+- Embed title: 256 characters max
+- Embed description: 4096 characters max
+- Embed fields: 25 fields max
+- Field name: 256 characters max
+- Field value: 1024 characters max
+- Footer text: 2048 characters max
+- Author name: 256 characters max
+- **Total embed size: 6000 characters max** (all text combined)
+
+<Aside type="caution">
+  Bots can only send **one embed per message**. Webhooks can send up to 5 embeds per message.
+</Aside>
+
+## Next Steps
+
+- Learn about [Advanced Messages](/guides/messages/advanced-messages/) with components and files
+- Add [Emojis](/guides/messages/emojis/) to your messages
+- Upload [Files](/guides/messages/file-uploads/) with messages
+- Create [Interactive Components](/guides/interactions/components/)

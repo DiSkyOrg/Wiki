@@ -1,0 +1,354 @@
+---
+title: Migrating to v4.26
+description: Guide for upgrading from DiSky v4.25 to v4.26
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+DiSky v4.26.0 introduces new features, improvements to message editing, and several bug fixes. This guide will help you update your scripts for compatibility.
+
+## Breaking Changes
+
+### Message Editing Behavior
+
+The `edit message` effect now has different default behavior:
+
+<Aside type="danger" title="Action Required">
+  If your code relied on the old behavior of completely replacing message content, you must update it to use the `and replace` modifier.
+</Aside>
+
+#### Before v4.26
+
+Editing a message would replace everything (content, embeds, components):
+
+```applescript
+edit message {_msg} to show "New content"
+# ❌ This removed all embeds and components
+```
+
+#### Since v4.26
+
+**Default behavior** (recommended) - Partial update that preserves unchanged elements:
+
+```applescript
+edit message {_msg} to show "New content"
+# ✅ Keeps existing embeds and components
+```
+
+**Explicit replacement** - Use when you want the old behavior:
+
+```applescript
+edit and replace message {_msg} to show "New content"
+# ✅ Removes embeds and components that aren't specified
+
+# Alternative syntax
+edit message {_msg} by replacing to show "New content"
+```
+
+### Migration Steps
+
+<Steps>
+
+1. **Find all `edit message` effects in your code**
+
+   Search for: `edit message` or `edit the message`
+
+2. **Determine the intent**
+
+   Ask: "Do I want to keep existing embeds/components?"
+
+   - **Yes** → No changes needed (new default behavior)
+   - **No** → Add `and replace` or `by replacing`
+
+3. **Update the code**
+
+   ```applescript
+   # Old code (v4.25 and earlier)
+   edit message {_msg} to show "Updated"
+
+   # New code (v4.26+)
+   # If you want to keep embeds/components:
+   edit message {_msg} to show "Updated"
+
+   # If you want to remove them:
+   edit and replace message {_msg} to show "Updated"
+   ```
+
+4. **Test thoroughly**
+
+   Verify that your message edits work as expected.
+
+</Steps>
+
+## New Features
+
+### 1. Embed Fields as Expressions
+
+You can now get embed fields directly as a list:
+
+```applescript
+# Get all fields from an embed
+set {_fields::*} to embed fields of {_embed}
+
+# Loop through fields
+loop {_fields::*}:
+    send "Field: %name of loop-value% = %value of loop-value%" to console
+```
+
+**Use cases:**
+- Inspect existing embed fields
+- Copy fields from one embed to another
+- Modify field data programmatically
+
+**Example:**
+
+```applescript
+# Copy fields from one embed to another
+set {_originalFields::*} to embed fields of {_originalEmbed}
+
+make embed and store it in {_newEmbed}:
+    set title of embed to "Modified Embed"
+    set embed color of embed to blue
+
+loop {_originalFields::*}:
+    add loop-value to fields of {_newEmbed}
+
+reply with {_newEmbed}
+```
+
+### 2. Member Boost Time
+
+Track how long members have been boosting your server:
+
+```applescript
+# Get boost date (when they started boosting)
+set {_boostDate} to boost date of {_member}
+
+# Calculate boost duration
+set {_boostDuration} to difference between now and boost date of {_member}
+
+# Example usage
+on message receive:
+    if message is "!boostinfo":
+        set {_boostDate} to boost date of event-member
+
+        if {_boostDate} is not set:
+            reply with "You're not boosting this server."
+        else:
+            set {_duration} to difference between now and {_boostDate}
+            reply with "You've been boosting for %{_duration}%! Thank you! 💎"
+```
+
+**Practical example - Boost Leaderboard:**
+
+```applescript
+command /boostleaderboard:
+    trigger:
+        set {_boosters::*} to boosters of event-guild
+
+        make embed and store it in {_embed}:
+            set title of embed to "Boost Leaderboard"
+            set embed color of embed to hex "#F47FFF" # Boost color
+
+            loop {_boosters::*}:
+                set {_duration} to difference between now and boost date of loop-value
+                add field named "%discord name of loop-value%" with value "Boosting for %{_duration}%" to fields of embed
+
+        reply with {_embed}
+```
+
+### 3. Embed Templates
+
+Reuse embeds across your bot with templates:
+
+```applescript
+# Register template once
+register embed "success":
+    set title of embed to "✅ Success"
+    set embed color of embed to green
+    set footer of embed to "Operation completed"
+
+register embed "error":
+    set title of embed to "❌ Error"
+    set embed color of embed to red
+    set footer of embed to "Please try again"
+
+# Use templates anywhere
+on slash command:
+    if event-string is "test":
+        # Use template directly
+        reply with embed template "success"
+
+    # Or modify it
+    make embed based on embed template "error":
+        set description of embed to "Something went wrong with your request"
+    reply with last embed
+```
+
+## Bug Fixes
+
+### Slash Command Registration
+
+Fixed several issues with slash commands:
+
+- ✅ Commands now maintain consistent IDs across restarts
+- ✅ Guild-specific commands load properly without hanging
+- ✅ Command settings persist after server restarts
+- ✅ Improved registration performance
+
+**What this means:**
+- You no longer need to wait hours for commands to update
+- Commands won't duplicate or break after server restarts
+- Guild commands register instantly
+
+### Message Editing
+
+- ✅ Fixed embeds being removed when editing message content
+- ✅ Fixed components disappearing during message updates
+- ✅ Improved error handling for invalid edits
+
+## Upgrade Checklist
+
+<Steps>
+
+1. **Backup your scripts**
+
+   Always backup before updating!
+
+2. **Update DiSky**
+
+   Download v4.26.0 from [Modrinth](https://modrinth.com/plugin/disky) or [GitHub](https://github.com/DiSkyOrg/DiSky/releases)
+
+3. **Update message edit calls**
+
+   Search for `edit message` and add `and replace` where needed
+
+4. **Test slash commands**
+
+   Verify all commands register and function correctly
+
+5. **Test message editing**
+
+   Ensure edited messages keep or remove content as intended
+
+6. **Review new features**
+
+   Consider using embed templates and boost tracking
+
+7. **Restart server**
+
+   Always restart (don't use `/reload`)
+
+</Steps>
+
+## Examples
+
+### Message Editing Pattern
+
+```applescript
+# Updating only content (keeps embeds and buttons)
+edit message {_msg} to show "Updated content only"
+
+# Updating with new embed (keeps old content)
+make embed:
+    set title of embed to "New Embed"
+    set embed color of embed to blue
+edit message {_msg} to show last embed
+
+# Complete replacement (removes everything not specified)
+edit and replace message {_msg} to show "Only this text"
+
+# Replace with new content and embed
+make embed:
+    set title of embed to "Fresh Start"
+edit and replace message {_msg} to show "New" with last embed
+```
+
+### Using Boost Information
+
+```applescript
+# Thank boosters
+on guild member boost:
+    set {_channel} to text channel named "announcements" in event-guild
+    if {_channel} is set:
+        make embed:
+            set title of embed to "Thank you for boosting!"
+            set description of embed to "%mention tag of event-member% just boosted the server! 💎"
+            set embed color of embed to hex "#F47FFF"
+            set thumbnail of embed to avatar of event-user
+
+        post last embed to {_channel}
+
+# Boost duration command
+command /myboost:
+    trigger:
+        set {_date} to boost date of event-member
+
+        if {_date} is not set:
+            reply with "You're not currently boosting this server."
+        else:
+            set {_time} to difference between now and {_date}
+            reply with "You've been boosting for %{_time}%! Thanks for your support! 💎"
+```
+
+## Common Issues
+
+### "Command already exists" Error
+
+If you get duplicate command errors after updating:
+
+1. Delete all existing commands (optional)
+2. Restart server
+3. Let DiSky re-register commands
+
+### Message Edits Remove Content
+
+If your edited messages are losing embeds/components:
+
+**Problem:**
+```applescript
+edit message {_msg} to show "New text"
+# Embeds disappeared!
+```
+
+**Solution:**
+This is now the expected behavior. To remove content, use:
+```applescript
+edit and replace message {_msg} to show "New text"
+```
+
+### Boost Date Returns Nothing
+
+The member must be actively boosting. Check with:
+
+```applescript
+if event-member is boosting event-guild:
+    # They're boosting
+    set {_date} to boost date of event-member
+else:
+    # Not boosting
+    reply with "You're not boosting this server"
+```
+
+<Aside type="tip">
+  Always test your changes in a development server before deploying to production!
+</Aside>
+
+## Next Steps
+
+- Learn about [Embed Templates](/guides/messages/simple-messages/#embed-templates)
+- Explore [Message Editing](/guides/messages/advanced-messages/)
+- Check out [Slash Commands](/guides/interactions/slash-commands/)
+
+## Need Help?
+
+If you encounter issues during migration:
+
+1. Check the [FAQ](/getting-started/faq/)
+2. Search existing issues on [GitHub](https://github.com/DiSkyOrg/DiSky/issues)
+3. Ask in our [Discord server](https://disky.me/discord)
+
+Remember to include:
+- Your DiSky version (`/ver disky`)
+- The specific error message
+- Relevant code snippet

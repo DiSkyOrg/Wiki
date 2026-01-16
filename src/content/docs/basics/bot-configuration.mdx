@@ -1,0 +1,246 @@
+---
+title: Bot Configuration
+description: Learn how to configure your DiSky bot with advanced options
+---
+
+import { Aside, Code } from '@astrojs/starlight/components';
+
+When defining a bot in DiSky, you can configure various aspects of how it connects to and interacts with Discord. This guide covers the main configuration options available.
+
+## Basic Bot Structure
+
+Here's a complete bot definition with all available options:
+
+```applescript
+define new bot named "MyBot":
+    # Required: Your bot's token
+    token: "YOUR_BOT_TOKEN"
+
+    # Gateway intents (what events to receive)
+    intents: default intents
+
+    # Member cache policy
+    policy: all
+
+    # Cache flags (what to cache)
+    cache flags: default cache
+
+    # Gateway compression
+    compression: none
+
+    # Auto-reconnect on disconnect
+    auto reconnect: true
+
+    # Force reload on script reload
+    force reload: false
+```
+
+## Configuration Options
+
+### Token (Required)
+
+Your bot's secret token from the Discord Developer Portal.
+
+```applescript
+token: "YOUR_BOT_TOKEN_HERE"
+```
+
+<Aside type="danger" title="Keep Your Token Secret">
+  Never share your bot token publicly or commit it to version control. Anyone with your token can control your bot.
+</Aside>
+
+### Intents
+
+Gateway intents determine which events your bot can receive from Discord. See [Gateway Intents](/basics/gateway-intents/) for detailed information.
+
+```applescript
+# Use default intents (recommended for most bots)
+intents: default intents
+
+# Or specify specific intents
+intents: guild members, message content, guild presences
+
+# Enable all intents
+intents: all intents
+```
+
+<Aside type="caution">
+  Some intents (guild members, message content, guild presences) are **privileged** and must be enabled in the Discord Developer Portal.
+</Aside>
+
+### Policy
+
+The member cache policy determines how DiSky caches guild members. See [Cache Policy](/basics/cache-policy/) for details.
+
+```applescript
+policy: all      # Cache all members (requires guild members intent)
+policy: none     # Don't cache members
+policy: owner    # Cache only guild owners
+policy: online   # Cache only online members (requires guild presences intent)
+policy: voice    # Cache only members in voice channels
+policy: booster  # Cache only server boosters
+policy: default  # Default policy (recommended)
+```
+
+### Cache Flags
+
+Cache flags determine which entity data to cache. See [Cache Policy](/basics/cache-policy/) for details.
+
+```applescript
+# Use default cache (recommended)
+cache flags: default cache
+
+# Specify specific flags
+cache flags: activity, voice state, emoji, sticker
+
+# Cache everything
+cache flags: all
+
+# Cache nothing
+cache flags: none
+```
+
+### Compression
+
+Gateway compression reduces bandwidth usage. Most bots should use `none`.
+
+```applescript
+compression: none  # No compression (default, recommended)
+compression: zlib  # Use zlib compression
+```
+
+### Auto Reconnect
+
+Whether the bot should automatically reconnect if disconnected from Discord.
+
+```applescript
+auto reconnect: true   # Automatically reconnect (recommended)
+auto reconnect: false  # Don't reconnect automatically
+```
+
+<Aside type="tip">
+  Keep this as `true` unless you have a specific reason not to.
+</Aside>
+
+### Force Reload
+
+Whether to reload the bot's connection when the script is reloaded.
+
+```applescript
+force reload: false  # Don't reload connection (recommended)
+force reload: true   # Reload connection on script reload
+```
+
+<Aside type="caution">
+  Set this to `false` to avoid unnecessary reconnections. The bot will maintain its connection when you reload your script.
+</Aside>
+
+## Ready Sections
+
+The bot structure supports three event sections that run at specific times:
+
+### on ready
+
+Runs once when the bot is fully loaded (including all guilds):
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+
+    on ready:
+        send "&a%event-bot% is ready!" to console
+        # Register global slash commands here
+```
+
+**Event value**: `event-bot`
+
+### on guild ready
+
+Runs when each guild is fully loaded:
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+
+    on guild ready:
+        send "&a%event-guild% is ready!" to console
+        # Register guild-specific slash commands here
+```
+
+**Event values**: `event-bot`, `event-guild`
+
+### on shutdown
+
+Runs when the bot is about to disconnect:
+
+```applescript
+define new bot named "MyBot":
+    token: "..."
+
+    on shutdown:
+        send "&c%event-bot% is shutting down!" to console
+        # Clean up resources
+```
+
+**Event value**: `event-bot`
+
+## Complete Example
+
+Here's a real-world example with optimal settings:
+
+```applescript
+define new bot named "MyBot":
+    # Bot token
+    token: "YOUR_TOKEN_HERE"
+
+    # Enable intents we need
+    intents: default intents, guild members, message content
+
+    # Cache all members
+    policy: all
+
+    # Cache activity, voice, and online status
+    cache flags: default cache
+
+    # No compression
+    compression: none
+
+    # Auto reconnect
+    auto reconnect: true
+
+    # Don't force reload
+    force reload: false
+
+    # Bot is ready
+    on ready:
+        send "&a[Bot] %event-bot% is online!" to console
+        send "&7Loaded %size of guilds of event-bot% guilds" to console
+
+        # Set bot presence
+        set presence of event-bot to playing "Minecraft"
+
+    # Guild is ready
+    on guild ready:
+        send "&7Guild %event-guild% loaded" to console
+
+    # Bot is shutting down
+    on shutdown:
+        send "&c[Bot] %event-bot% is going offline" to console
+```
+
+## Best Practices
+
+1. **Start with defaults**: Use `default intents`, `default cache`, and `policy: all` unless you have specific needs
+2. **Enable required intents**: Make sure to enable privileged intents in the Developer Portal if needed
+3. **Keep force reload false**: Avoid unnecessary reconnections
+4. **Use ready sections**: Initialize your bot properly in the `on ready` section
+
+<Aside type="tip">
+  Most bots work great with the default settings. Only customize if you have specific performance or functionality requirements.
+</Aside>
+
+## Next Steps
+
+- Learn more about [Gateway Intents](/basics/gateway-intents/)
+- Understand [Cache Policy & Flags](/basics/cache-policy/)
+- Set up [Presence & Status](/basics/presence-status/)
