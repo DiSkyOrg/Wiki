@@ -5,6 +5,8 @@ import starlightThemeObsidian from 'starlight-theme-obsidian'
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://wiki.disky.me',
+	base: '/',
 	integrations: [
 		starlight({
 			plugins: [starlightThemeObsidian({
