@@ -1,0 +1,396 @@
+---
+title: Advanced Messages
+description: Learn how to create rich messages with embeds, components, and file attachments
+---
+
+import { Aside, Tabs, TabItem, Code } from '@astrojs/starlight/components';
+
+Advanced messages (also called **rich messages**) let you combine multiple elements into a single message: text content, embeds, interactive components, and file attachments. They give you complete control over your bot's message presentation.
+
+## What Are Rich Messages?
+
+A rich message can contain:
+
+- **Text content** - Plain text or formatted message
+- **Embeds** - One embed (or up to 5 with webhooks)
+- **Components** - Buttons and dropdown menus (up to 5 rows)
+- **Attachments** - Files, images, or other uploads
+
+<Aside type="tip">
+  Use rich messages when you need to combine multiple elements. For simple text or embeds, the basic `reply with` or `post` effects work great!
+</Aside>
+
+## Creating a Rich Message
+
+Use the `create message` section to build your rich message:
+
+```applescript
+create a new message and store it in {_msg}:
+    # Configure message properties here
+
+reply with {_msg}
+```
+
+Inside the section, you'll reference the message builder using `message` or `last message builder`.
+
+## Adding Text Content
+
+Start by adding simple text to your message:
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Hello World!"
+
+reply with {_msg}
+```
+
+This produces the same result as `reply with "Hello World!"`, but it sets up the foundation for adding more elements.
+
+## Adding Embeds
+
+Combine text with embeds for rich, visually appealing messages:
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Check out this embed!"
+
+    make embed:
+        set title of embed to "Amazing Embed"
+        set embed color of embed to orange
+        set description of embed to "Embeds make your messages stand out!"
+        set footer of embed to "Created with DiSky v4"
+
+    add last embed to the embeds of the message
+
+reply with {_msg}
+```
+
+<Aside type="caution">
+  Bot messages can only contain **one embed**. However, webhooks can send up to **5 embeds** per message!
+</Aside>
+
+### Using Data Structures for Embeds
+
+You can also use data structures for cleaner code:
+
+```applescript
+create a new message and store it in {_msg}:
+    content: "Check out this embed!"
+
+    embed:
+        title: "Amazing Embed"
+        color: orange
+        description: "Embeds make your messages stand out!"
+        footer: "Created with DiSky v4"
+
+reply with {_msg}
+```
+
+## Adding File Attachments
+
+Attach files to your messages using local file paths:
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Here's a file!"
+
+    make embed:
+        set title of embed to "File Attachment Example"
+        set embed color of embed to blue
+    add last embed to the embeds of the message
+
+    # Add a file from your server
+    add "plugins/Skript/scripts/example.sk" to the attachments of the message
+
+reply with {_msg}
+```
+
+<Aside type="note">
+  If **SkImage** is installed, you can also attach images directly. See the [File Uploads guide](/guides/messages/file-uploads/) for more details.
+</Aside>
+
+### Using Attachments in Embeds
+
+You can reference attached files in embed images:
+
+```applescript
+create a new message and store it in {_msg}:
+    make embed:
+        set title of embed to "Image Embed"
+        set embed color of embed to purple
+        set image of embed to "attachment://my-image.png"
+    add last embed to the embeds of the message
+
+    # The attachment name must match the reference
+    set {_upload} to new file upload from file "path/to/image.png" named "my-image.png"
+    add {_upload} to the attachments of the message
+
+reply with {_msg}
+```
+
+## Adding Interactive Components
+
+Add buttons and dropdown menus to make your messages interactive:
+
+### Adding a Single Button
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Click the button below!"
+
+    # Add a button (takes one row)
+    add new success button with id "confirm" named "Confirm" to rows of the message
+
+reply with {_msg}
+```
+
+### Adding Multiple Buttons in One Row
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Choose an option:"
+
+    # Create a row with multiple buttons
+    make new component row and store it in {_row}:
+        add new success button with id "yes" named "Yes" with reaction "✅" to components of the row builder
+        add new danger button with id "no" named "No" with reaction "❌" to components of the row builder
+        add new link button with url "https://disky.me" named "Learn More" to components of the row builder
+
+    add {_row} to rows of the message
+
+reply with {_msg}
+```
+
+### Adding a Dropdown Menu
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Select your favorite color:"
+
+    # Create dropdown
+    set {_dropdown} to new dropdown with id "color_picker"
+    set min range of {_dropdown} to 1
+    set max range of {_dropdown} to 1
+    set placeholder of {_dropdown} to "Choose a color..."
+
+    # Add options
+    add new option with value "red" named "Red" with description "The color of passion" with reaction "🔴" to options of {_dropdown}
+    add new option with value "blue" named "Blue" with description "The color of calm" with reaction "🔵" to options of {_dropdown}
+    add new option with value "green" named "Green" with description "The color of nature" with reaction "🟢" to options of {_dropdown}
+
+    add {_dropdown} to rows of the message
+
+reply with {_msg}
+```
+
+<Aside type="tip">
+  A message can contain up to **5 component rows**. Each row can have up to 5 buttons, or 1 dropdown menu.
+</Aside>
+
+## Complete Example
+
+Here's a comprehensive example combining everything:
+
+```applescript
+command /welcome:
+    trigger:
+        create a new message and store it in {_msg}:
+            set the content of the message to "Welcome to our server!"
+
+            # Add welcome embed
+            make embed:
+                set title of embed to "Getting Started"
+                set embed color of embed to blue
+                set description of embed to "Thanks for joining! Here's what you need to know."
+
+                add inline field named "Members" with value "1,234" to fields of embed
+                add inline field named "Channels" with value "42" to fields of embed
+
+                set footer of embed to "Server established 2020"
+                set timestamp of embed to now
+
+            add last embed to the embeds of the message
+
+            # Add action buttons
+            make new component row and store it in {_row}:
+                add new primary button with id "rules" named "Read Rules" with reaction "📜" to components of the row builder
+                add new success button with id "verify" named "Get Verified" with reaction "✅" to components of the row builder
+            add {_row} to rows of the message
+
+            # Add role selection dropdown
+            set {_dropdown} to new dropdown with id "role_select"
+            set placeholder of {_dropdown} to "Select your interests..."
+            set min range of {_dropdown} to 0
+            set max range of {_dropdown} to 3
+
+            add new option with value "gaming" named "Gaming" with description "Get gaming updates" with reaction "🎮" to options of {_dropdown}
+            add new option with value "art" named "Art" with description "Get art updates" with reaction "🎨" to options of {_dropdown}
+            add new option with value "music" named "Music" with description "Get music updates" with reaction "🎵" to options of {_dropdown}
+
+            add {_dropdown} to rows of the message
+
+        reply with {_msg}
+```
+
+## Modifying Existing Messages
+
+You can create a message based on an existing one:
+
+```applescript
+# Create a base message
+create a new message and store it in {_original}:
+    set the content of the message to "Original message"
+
+# Modify it
+create a new message based on {_original} and store it in {_modified}:
+    set the content of the message to "Modified message"
+
+    make embed:
+        set title of embed to "New Embed"
+        set embed color of embed to green
+    add last embed to the embeds of the message
+
+reply with {_modified}
+```
+
+## Embed JSON Serialization
+
+Since DiSky v4.12.1, you can convert embeds to and from JSON:
+
+<Tabs>
+<TabItem label="Embed to JSON">
+
+```applescript
+make embed and store it in {_embed}:
+    set title of embed to "My Embed"
+    set description of embed to "This will be serialized"
+    set embed color of embed to blue
+
+# Convert to JSON string
+set {_json} to embed {_embed} as json
+
+# Store in database, file, etc.
+```
+
+</TabItem>
+<TabItem label="JSON to Embed">
+
+```applescript
+# Load JSON from database, file, etc.
+set {_json} to "..."
+
+# Convert back to embed
+set {_embed} to embed from json {_json}
+
+reply with {_embed}
+```
+
+</TabItem>
+</Tabs>
+
+<Aside type="tip" title="Why Use JSON Serialization?">
+  Store embeds in databases or configuration files, share embed templates between scripts, or send embed data across different systems.
+</Aside>
+
+## Best Practices
+
+1. **Keep it organized** - Group related components together
+2. **Don't overcrowd** - Too many elements make messages overwhelming
+3. **Use meaningful IDs** - Button and dropdown IDs should describe their purpose
+4. **Test thoroughly** - Verify all components work as expected
+5. **Handle interactions** - Always respond to button clicks and dropdown selections
+6. **Consider mobile users** - Not all features display the same on mobile
+
+## Common Patterns
+
+### Confirmation Dialog
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Are you sure you want to delete this?"
+
+    make new component row and store it in {_row}:
+        add new danger button with id "delete_confirm" named "Yes, Delete" to components of the row builder
+        add new secondary button with id "delete_cancel" named "Cancel" to components of the row builder
+    add {_row} to rows of the message
+
+reply with {_msg}
+```
+
+### Information Panel
+
+```applescript
+create a new message and store it in {_msg}:
+    make embed:
+        set title of embed to "Server Information"
+        set embed color of embed to blue
+
+        add inline field named "Owner" with value "ItsTheSky" to fields of embed
+        add inline field named "Region" with value "US West" to fields of embed
+        add inline field named "Created" with value "January 2020" to fields of embed
+
+        set footer of embed to "Server ID: 123456789"
+        set timestamp of embed to now
+    add last embed to the embeds of the message
+
+    add new link button with url "https://discord.gg/example" named "Invite Link" to rows of the message
+
+reply with {_msg}
+```
+
+### Paginated Content
+
+```applescript
+create a new message and store it in {_msg}:
+    make embed:
+        set title of embed to "Help - Page 1/3"
+        set description of embed to "List of available commands..."
+        set embed color of embed to purple
+    add last embed to the embeds of the message
+
+    make new component row and store it in {_row}:
+        add new disabled secondary button with id "prev" named "◀ Previous" to components of the row builder
+        add new primary button with id "next" named "Next ▶" to components of the row builder
+    add {_row} to rows of the message
+
+reply with {_msg}
+```
+
+## Troubleshooting
+
+### Message Not Sending
+
+- Check that all component IDs are unique
+- Verify embed doesn't exceed size limits (6000 characters total)
+- Ensure file paths for attachments are correct
+- Make sure you're not exceeding 5 component rows
+
+### Components Not Working
+
+- Verify you have event handlers for button/dropdown interactions
+- Check that component IDs match between creation and event handling
+- Ensure you're replying or deferring interactions within 3 seconds
+
+### Embeds Not Displaying
+
+- Verify all required properties are set
+- Check that image URLs are valid and accessible
+- Ensure color values are valid (named colors, hex, or RGB)
+- Don't exceed 1 embed per message (unless using webhooks)
+
+## Limitations
+
+- **Text content**: 2000 characters max
+- **Embeds**: 1 per message (5 with webhooks)
+- **Component rows**: 5 rows max per message
+- **Buttons per row**: 5 buttons max
+- **Attachments**: 10 files max per message
+- **Total message size**: 8MB max (including all attachments)
+
+## Next Steps
+
+- Learn about [Emojis](/guides/messages/emojis/) in messages and reactions
+- Explore [File Uploads](/guides/messages/file-uploads/) in detail
+- Send messages with [Webhooks](/guides/messages/webhooks/)
+- Create [Interactive Components](/guides/interactions/components/)
+- Handle [Button and Dropdown Interactions](/guides/interactions/overview/)

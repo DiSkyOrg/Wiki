@@ -1,0 +1,595 @@
+---
+title: Buttons & Dropdowns
+description: Learn how to create and use interactive buttons and dropdown menus in Discord
+---
+
+import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+Interactive components make your Discord bot engaging and user-friendly. Buttons and dropdown menus provide a modern, intuitive way for users to interact with your bot without typing commands.
+
+<Aside type="note">
+  Components can only be used in **messages** or **modals**. They cannot exist independently.
+</Aside>
+
+## Understanding Component Layout
+
+Components are organized into **Action Rows**, which take the full width of a message:
+
+- **Buttons**: Up to 5 buttons per row
+- **Dropdown menus**: 1 dropdown per row
+- **Maximum rows**: 5 action rows per message
+
+Think of action rows as horizontal containers where you place your interactive elements.
+
+## Buttons
+
+Buttons are the most common interactive component. They can trigger actions, open links, or navigate between different bot features.
+
+### Button Styles
+
+Discord provides 5 button styles with different colors and purposes:
+
+- **Primary** (Blurple) - Main actions
+- **Secondary** (Gray) - Secondary actions
+- **Success** (Green) - Confirmations, positive actions
+- **Danger** (Red) - Deletions, warnings, destructive actions
+- **Link** (Gray with link icon) - External links
+
+### Creating Buttons
+
+<Tabs>
+<TabItem label="Primary">
+
+```applescript
+set {_btn} to new primary button with id "action" named "Click Me!"
+```
+
+</TabItem>
+<TabItem label="Secondary">
+
+```applescript
+set {_btn} to new secondary button with id "secondary" named "Cancel"
+```
+
+</TabItem>
+<TabItem label="Success">
+
+```applescript
+set {_btn} to new success button with id "confirm" named "Confirm"
+```
+
+</TabItem>
+<TabItem label="Danger">
+
+```applescript
+set {_btn} to new danger button with id "delete" named "Delete"
+```
+
+</TabItem>
+<TabItem label="Link">
+
+```applescript
+set {_btn} to new link button with url "https://disky.me" named "Visit Website"
+```
+
+</TabItem>
+</Tabs>
+
+<Aside type="tip">
+  Link buttons don't need an ID - they navigate directly to the URL and don't trigger interaction events.
+</Aside>
+
+### Disabled Buttons
+
+Create non-clickable buttons by adding the `disabled` keyword:
+
+```applescript
+# Disabled button (grayed out)
+set {_btn} to new disabled primary button with id "locked" named "Locked"
+
+# Disabled link button
+set {_btn} to new disabled link button with url "https://example.com" named "Unavailable"
+```
+
+### Adding Emojis to Buttons
+
+Make buttons more visually appealing with emojis:
+
+```applescript
+# Using a unicode emoji
+set {_btn} to new success button with id "like" named "Like" with reaction "👍"
+
+# Using a custom emote (by ID)
+set {_btn} to new primary button with id "custom" named "Special" with reaction "123456789"
+```
+
+### Sending Buttons
+
+You can send buttons in multiple ways:
+
+#### Single Button
+
+```applescript
+set {_btn} to new success button with id "test" named "Click Me!" with reaction "✨"
+reply with rich components {_btn}
+```
+
+#### Multiple Buttons in One Row
+
+```applescript
+make new component row and store it in {_row}:
+    add new success button with id "yes" named "Yes" with reaction "✅" to components of the row builder
+    add new danger button with id "no" named "No" with reaction "❌" to components of the row builder
+    add new secondary button with id "maybe" named "Maybe" with reaction "🤔" to components of the row builder
+
+reply with rich components {_row}
+```
+
+#### Buttons in a Rich Message
+
+```applescript
+create a new message and store it in {_msg}:
+    set the content of the message to "Choose your action:"
+
+    # First row with action buttons
+    make new component row and store it in {_row1}:
+        add new primary button with id "edit" named "Edit" with reaction "✏️" to components of the row builder
+        add new danger button with id "delete" named "Delete" with reaction "🗑️" to components of the row builder
+    add {_row1} to rows of the message
+
+    # Second row with a link
+    add new link button with url "https://disky.me/docs" named "Documentation" to rows of the message
+
+reply with {_msg}
+```
+
+### Handling Button Clicks
+
+Use the `on button click` event to respond when users click buttons:
+
+```applescript
+on button click:
+    # event-string contains the button ID
+    if event-string is "confirm":
+        reply with "Action confirmed!"
+
+    else if event-string is "cancel":
+        reply with "Action cancelled."
+
+    else if event-string is "delete":
+        # Show ephemeral message (only visible to user)
+        reply with hidden "This will delete the item. Are you sure?"
+```
+
+<Aside type="caution">
+  Always respond to button clicks within **3 seconds**, or Discord will show "This interaction failed" to the user.
+</Aside>
+
+### Editing Buttons After Click
+
+Since DiSky v4.14.2, you can edit a button directly when clicked:
+
+```applescript
+on button click:
+    if event-string is "toggle":
+        # Disable the button after clicking
+        edit button to show new disabled success button with id "toggle" named "Activated" with reaction "✅"
+```
+
+This is more efficient than editing the entire message and provides instant feedback.
+
+## Dropdown Menus
+
+Dropdown menus (also called select menus) let users choose from multiple options. There are two types:
+
+- **String dropdowns**: Choose from predefined values
+- **Entity dropdowns**: Choose Discord users, roles, or channels
+
+### String Dropdowns
+
+String dropdowns let users select from options you define.
+
+#### Creating a String Dropdown
+
+```applescript
+set {_dropdown} to new dropdown with id "color_picker"
+set min range of {_dropdown} to 1  # Minimum selections
+set max range of {_dropdown} to 1  # Maximum selections
+set placeholder of {_dropdown} to "Choose a color..."
+```
+
+#### Adding Options
+
+Each option needs:
+- **Value** (required) - Returned when selected, not visible to users
+- **Name** (required) - Displayed to users
+- **Description** (optional) - Additional info shown to users
+- **Emoji** (optional) - Visual decoration
+
+```applescript
+add new option with value "red" named "Red" with description "The color of passion" with reaction "🔴" to options of {_dropdown}
+add new option with value "blue" named "Blue" with description "The color of calm" with reaction "🔵" to options of {_dropdown}
+add new option with value "green" named "Green" with description "The color of nature" with reaction "🟢" to options of {_dropdown}
+```
+
+<Aside type="caution">
+  Option values must be unique within a dropdown, just like button IDs!
+</Aside>
+
+#### Complete String Dropdown Example
+
+```applescript
+command /theme:
+    trigger:
+        set {_dropdown} to new dropdown with id "theme_selector"
+        set min range of {_dropdown} to 1
+        set max range of {_dropdown} to 1
+        set placeholder of {_dropdown} to "Select your theme..."
+
+        add new option with value "light" named "Light Mode" with description "Bright and clean" with reaction "☀️" to options of {_dropdown}
+        add new option with value "dark" named "Dark Mode" with description "Easy on the eyes" with reaction "🌙" to options of {_dropdown}
+        add new option with value "auto" named "Auto" with description "Matches your Discord theme" with reaction "⚙️" to options of {_dropdown}
+
+        reply with rich components {_dropdown}
+
+on dropdown click:
+    if event-dropdown is "theme_selector":
+        set {_choice::*} to selected values
+        set {_theme} to first element of {_choice::*}
+
+        reply with hidden "Theme set to: %{_theme}%"
+```
+
+### Entity Dropdowns
+
+Entity dropdowns let users select Discord entities: users, roles, or channels.
+
+#### Creating Entity Dropdowns
+
+You can target specific entity types:
+
+```applescript
+# User & Role selection (can be combined)
+set {_dropdown} to new entity dropdown with id "mention_picker" targeting "users" and "roles"
+
+# Channel selection only (cannot mix with users/roles)
+set {_dropdown} to new entity dropdown with id "channel_picker" targeting "channels"
+```
+
+<Aside type="caution">
+  You can mix **users and roles**, but **cannot** mix channels with anything else!
+</Aside>
+
+#### Entity Dropdown Example
+
+```applescript
+command /mention:
+    trigger:
+        set {_dropdown} to new entity dropdown with id "user_selector" targeting "users"
+        set min range of {_dropdown} to 1
+        set max range of {_dropdown} to 3
+        set placeholder of {_dropdown} to "Select up to 3 users..."
+
+        reply with rich components {_dropdown}
+
+on entity dropdown click:
+    if event-dropdown is "user_selector":
+        set {_selected::*} to selected entities
+
+        # Build mention list
+        loop {_selected::*}:
+            add mention tag of loop-value to {_mentions::*}
+
+        reply with "You selected: %join {_mentions::*} with "", ""%"
+```
+
+### Dropdown Properties
+
+Both dropdown types support these properties:
+
+```applescript
+set {_dropdown} to new dropdown with id "my_dropdown"
+
+# Required selections (default: 1)
+set min range of {_dropdown} to 1
+
+# Maximum selections (default: 1)
+set max range of {_dropdown} to 3
+
+# Placeholder text (shown before selection)
+set placeholder of {_dropdown} to "Choose options..."
+```
+
+### Handling Dropdown Selections
+
+Use different events for different dropdown types:
+
+#### String Dropdown Event
+
+```applescript
+on dropdown click:
+    # event-dropdown = dropdown ID
+    # selected values = array of selected values
+
+    if event-dropdown is "my_dropdown":
+        set {_values::*} to selected values
+
+        # Even if max = 1, it's still an array
+        set {_choice} to first element of {_values::*}
+
+        reply with "You chose: %{_choice}%"
+```
+
+#### Entity Dropdown Event
+
+```applescript
+on entity dropdown click:
+    # event-dropdown = dropdown ID
+    # selected entities = array of users/roles/channels
+
+    if event-dropdown is "role_picker":
+        set {_roles::*} to selected entities
+
+        loop {_roles::*}:
+            add loop-value to roles of event-user
+
+        reply with hidden "Roles added!"
+```
+
+### Editing Dropdowns After Selection
+
+```applescript
+on dropdown click:
+    if event-dropdown is "my_menu":
+        set {_values::*} to selected values
+
+        # Create updated dropdown showing selection
+        set {_newDropdown} to new dropdown with id "my_menu"
+        set placeholder of {_newDropdown} to "Selected: %join {_values::*} with "", ""%"
+
+        # Re-add all options
+        add new option with value "opt1" named "Option 1" to options of {_newDropdown}
+        add new option with value "opt2" named "Option 2" to options of {_newDropdown}
+
+        edit dropdown to show {_newDropdown}
+```
+
+## Using Data Structures
+
+Data structures provide a cleaner way to create components:
+
+### Button with Data Structures
+
+```applescript
+set {_button} to new button:
+    style: success
+    id: "accept"
+    label: "Accept"
+    emoji: "✅"
+
+reply with rich components {_button}
+```
+
+### Dropdown with Data Structures
+
+```applescript
+set {_menu} to new dropdown:
+    id: "color_select"
+    placeholder: "Choose a color"
+    min: 1
+    max: 1
+
+    option:
+        label: "Red"
+        value: "red"
+        description: "The color red"
+        emoji: "🔴"
+
+    option:
+        label: "Blue"
+        value: "blue"
+        description: "The color blue"
+        emoji: "🔵"
+
+reply with rich components {_menu}
+```
+
+<Aside type="tip">
+  Data structures make complex components much easier to read and maintain. See the [Data Structures guide](/concepts/data-structures/) for more details.
+</Aside>
+
+## Practical Examples
+
+### Poll System
+
+```applescript
+command /poll <text>:
+    trigger:
+        create a new message and store it in {_msg}:
+            set the content of the message to "📊 **Poll:** %arg-1%"
+
+            make new component row and store it in {_row}:
+                add new success button with id "poll_yes" named "Yes" with reaction "👍" to components of the row builder
+                add new danger button with id "poll_no" named "No" with reaction "👎" to components of the row builder
+                add new secondary button with id "poll_maybe" named "Maybe" with reaction "🤷" to components of the row builder
+            add {_row} to rows of the message
+
+        reply with {_msg}
+
+on button click:
+    if event-string starts with "poll_":
+        # Get vote type
+        set {_vote} to event-string
+        replace all "poll_" with "" in {_vote}
+
+        # Store vote (in practice, use a database)
+        reply with hidden "You voted: %{_vote}%"
+```
+
+### Role Selection Menu
+
+```applescript
+command /select-roles:
+    trigger:
+        set {_dropdown} to new dropdown with id "role_selector"
+        set min range of {_dropdown} to 0
+        set max range of {_dropdown} to 5
+        set placeholder of {_dropdown} to "Select your roles..."
+
+        add new option with value "dev" named "Developer" with description "Programming updates" with reaction "💻" to options of {_dropdown}
+        add new option with value "design" named "Designer" with description "Design updates" with reaction "🎨" to options of {_dropdown}
+        add new option with value "art" named "Artist" with description "Art updates" with reaction "🖼️" to options of {_dropdown}
+        add new option with value "music" named "Musician" with description "Music updates" with reaction "🎵" to options of {_dropdown}
+
+        reply with rich components {_dropdown}
+
+on dropdown click:
+    if event-dropdown is "role_selector":
+        set {_selected::*} to selected values
+
+        # In practice, map these to actual roles
+        reply with hidden "Selected roles: %join {_selected::*} with "", ""%"
+```
+
+### Navigation Menu
+
+```applescript
+command /help:
+    trigger:
+        set {_dropdown} to new dropdown with id "help_menu"
+        set placeholder of {_dropdown} to "Select a category..."
+        set min range of {_dropdown} to 1
+        set max range of {_dropdown} to 1
+
+        add new option with value "commands" named "Commands" with description "List of all commands" with reaction "📝" to options of {_dropdown}
+        add new option with value "setup" named "Setup" with description "How to set up the bot" with reaction "⚙️" to options of {_dropdown}
+        add new option with value "faq" named "FAQ" with description "Frequently asked questions" with reaction "❓" to options of {_dropdown}
+
+        create a new message and store it in {_msg}:
+            make embed:
+                set title of embed to "Help Menu"
+                set description of embed to "Select a category from the dropdown below"
+                set embed color of embed to blue
+            add last embed to the embeds of the message
+
+            add {_dropdown} to rows of the message
+
+        reply with {_msg}
+
+on dropdown click:
+    if event-dropdown is "help_menu":
+        set {_choice::*} to selected values
+        set {_category} to first element of {_choice::*}
+
+        if {_category} is "commands":
+            reply with "📝 **Commands**: /help, /poll, /select-roles..."
+        else if {_category} is "setup":
+            reply with "⚙️ **Setup**: Run /config to get started..."
+        else if {_category} is "faq":
+            reply with "❓ **FAQ**: Common questions answered..."
+```
+
+### Confirmation with Timeout
+
+```applescript
+command /dangerous:
+    trigger:
+        create a new message and store it in {_msg}:
+            set the content of the message to "⚠️ This action is dangerous. Are you sure?"
+
+            make new component row and store it in {_row}:
+                add new danger button with id "confirm_%event-user's id%" named "Yes, I'm Sure" to components of the row builder
+                add new secondary button with id "cancel_%event-user's id%" named "Cancel" to components of the row builder
+            add {_row} to rows of the message
+
+        reply with {_msg}
+
+on button click:
+    if event-string starts with "confirm_":
+        # Extract user ID and verify
+        reply with "Action performed!"
+
+    else if event-string starts with "cancel_":
+        reply with hidden "Action cancelled."
+```
+
+## Best Practices
+
+<Steps>
+
+1. **Use Descriptive IDs**
+
+   Use IDs like `confirm_delete` instead of `btn1`. This makes code maintainable.
+
+2. **Provide Visual Feedback**
+
+   Use appropriate button styles: green for success, red for danger, etc.
+
+3. **Add Emojis**
+
+   Emojis make buttons and options more recognizable and engaging.
+
+4. **Set Reasonable Limits**
+
+   Don't allow too many selections in dropdowns unless necessary.
+
+5. **Always Respond**
+
+   Reply to all interactions within 3 seconds to avoid errors.
+
+6. **Use Placeholders**
+
+   Clear placeholders help users understand what to select.
+
+7. **Disable When Appropriate**
+
+   Disable buttons after one-time actions to prevent duplicate submissions.
+
+</Steps>
+
+## Troubleshooting
+
+### Button/Dropdown Not Working
+
+- Verify the component ID matches in your event handler
+- Check that you're using the correct event type
+- Ensure the component isn't disabled
+- Make sure IDs are unique within the message
+
+### "This interaction failed"
+
+- You didn't respond within 3 seconds
+- Use `defer the interaction` if you need processing time
+- Check for errors in your event handler code
+
+### Dropdown Values Not Received
+
+- For string dropdowns, use `selected values` (always returns array)
+- For entity dropdowns, use `selected entities`
+- Remember: even with max = 1, values are still in array format
+
+### Components Overlapping or Not Displaying
+
+- Don't exceed 5 buttons per row
+- Only 1 dropdown per row
+- Maximum 5 rows per message
+- Verify you're adding components to rows correctly
+
+## Component Limits
+
+- **Buttons per row**: 5 maximum
+- **Dropdown per row**: 1 only
+- **Rows per message**: 5 maximum
+- **Options per dropdown**: 25 maximum
+- **Button label**: 80 characters maximum
+- **Option label**: 100 characters maximum
+- **Option description**: 100 characters maximum
+- **Placeholder**: 150 characters maximum
+
+## Next Steps
+
+- Learn about [Slash Commands](/guides/interactions/slash-commands/)
+- Create [Modals](/guides/interactions/modals/) for complex input
+- Understand [Interactions Overview](/guides/interactions/overview/)
+- Build [Advanced Messages](/guides/messages/advanced-messages/)
+- Explore [Data Structures](/concepts/data-structures/) for cleaner code

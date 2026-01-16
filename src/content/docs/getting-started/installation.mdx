@@ -1,0 +1,80 @@
+---
+title: Installation
+description: Learn how to install DiSky on your Minecraft server
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+This guide will walk you through installing DiSky on your Minecraft server.
+
+## Requirements
+
+Before installing DiSky, ensure you have:
+
+- A Minecraft server (Spigot, Paper, or similar)
+- **Skript 2.10 or higher** installed
+- Basic knowledge of Skript syntax
+
+<Aside type="caution" title="Skript Version Required">
+  DiSky requires Skript version **2.10 or higher**. Older versions are not supported.
+</Aside>
+
+## Recommended Skript Version
+
+We recommend using [the official Skript fork](https://github.com/SkriptLang/Skript/releases/latest) maintained by SkriptLang. This fork is actively maintained and provides the best compatibility with DiSky.
+
+## Installation Steps
+
+<Steps>
+
+1. **Download Skript**
+
+   If you haven't already, download [Skript 2.10+](https://github.com/SkriptLang/Skript/releases/latest) and place it in your `plugins/` folder.
+
+2. **Download DiSky**
+
+   Download the latest version of DiSky from:
+   - [Modrinth](https://modrinth.com/plugin/disky) (recommended)
+   - [GitHub Releases](https://github.com/DiSkyOrg/DiSky/releases)
+
+3. **Install the Plugin**
+
+   Place the DiSky jar file in your server's `plugins/` folder alongside Skript.
+
+4. **Restart Your Server**
+
+   Restart your server completely. **Do not use `/reload`** as it can cause issues.
+
+   <Aside type="danger" title="Don't Use /reload">
+     Using `/reload` can cause serious issues with plugins. Always restart your server properly.
+   </Aside>
+
+5. **Verify Installation**
+
+   After the server restarts, check the console for DiSky's startup message. You can also run `/plugins` to verify both Skript and DiSky are loaded.
+
+</Steps>
+
+## Configuration
+
+DiSky does not require any configuration files. All bot configuration is done through Skript code, which you'll learn in the next section.
+
+<Aside type="tip">
+  If you need specific configuration options for certain features, you can request them on our [Discord server](https://disky.me/discord) or [GitHub repository](https://github.com/DiSkyOrg/DiSky).
+</Aside>
+
+## Add-on Compatibility
+
+DiSky is a comprehensive addon that adds many features to Skript. Some syntax may conflict with other Skript addons.
+
+- DiSky tries to avoid conflicts with **Skript itself**
+- Conflicts with other addons are possible but rare
+- If you encounter conflicts, report them on our [Discord](https://disky.me/discord)
+
+## Next Steps
+
+Now that DiSky is installed, you're ready to create your first Discord bot!
+
+:::tip[Next: Create Your First Bot]
+Continue to [Your First Bot](/getting-started/your-first-bot/) to learn how to set up and connect your Discord bot.
+:::

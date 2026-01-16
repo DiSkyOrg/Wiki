@@ -1,0 +1,398 @@
+---
+title: Component Examples
+description: Practical examples for using buttons, dropdowns, and modals in DiSky
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page provides practical, copy-paste ready examples for working with Discord's interactive components: buttons, dropdowns (select menus), and modals.
+
+## Button Examples
+
+### Simple Click Button
+
+```applescript
+# Send message with button
+on message receive:
+    if message is "!button":
+        set {_btn} to new primary button with id "simple_click" named "Click Me!"
+        reply with rich components {_btn}
+
+# Handle the click
+on button click:
+    if event-string is "simple_click":
+        reply with "Button clicked! 🎉"
+```
+
+### Multiple Buttons in a Row
+
+```applescript
+command /confirm:
+    trigger:
+        make new component row and store it in {_row}:
+            add new success button with id "yes" named "Yes" with reaction "✅" to components of row builder
+            add new danger button with id "no" named "No" with reaction "❌" to components of row builder
+            add new secondary button with id "cancel" named "Cancel" to components of row builder
+
+        reply with rich "Do you want to proceed?" with component row {_row}
+
+# Handle clicks
+on button click:
+    if event-string is "yes":
+        reply with "Confirmed!"
+    else if event-string is "no":
+        reply with "Denied!"
+    else if event-string is "cancel":
+        reply with "Cancelled."
+```
+
+### Disabled Button Example
+
+```applescript
+on message receive:
+    if message is "!sold":
+        # Create a disabled button to show item is sold
+        set {_btn} to new disabled secondary button with id "sold" named "Sold Out" with reaction "🔒"
+        reply with rich "This item is no longer available" with component {_btn}
+```
+
+### Link Button
+
+```applescript
+command /links:
+    trigger:
+        make new component row and store it in {_row}:
+            add new link button with url "https://github.com/DiSkyOrg/DiSky" named "GitHub" with reaction "💻" to components of row builder
+            add new link button with url "https://disky.me/discord" named "Discord" with reaction "💬" to components of row builder
+            add new link button with url "https://modrinth.com/plugin/disky" named "Modrinth" with reaction "📦" to components of row builder
+
+        reply with rich "Check out these links:" with component row {_row}
+```
+
+### Dynamic Button Update
+
+```applescript
+on button click:
+    if event-string is "toggle":
+        # Edit the button to show new state
+        edit button to show new success button with id "toggle" named "Enabled" with reaction "✅"
+        # Or make it disabled
+        # edit button to show new disabled secondary button with id "toggle" named "Disabled"
+```
+
+## Dropdown / Select Menu Examples
+
+### Basic Dropdown
+
+```applescript
+command /select:
+    trigger:
+        set {_menu} to new dropdown with id "basic_select"
+        set placeholder of {_menu} to "Choose an option..."
+        set min range of {_menu} to 1
+        set max range of {_menu} to 1
+
+        add new option with value "opt1" named "Option 1" to options of {_menu}
+        add new option with value "opt2" named "Option 2" to options of {_menu}
+        add new option with value "opt3" named "Option 3" to options of {_menu}
+
+        reply with rich components {_menu}
+
+# Handle selection
+on dropdown click:
+    if event-dropdown is "basic_select":
+        set {_selected} to first element of selected values
+        reply with "You selected: %{_selected}%"
+```
+
+### Dropdown with Descriptions and Emojis
+
+```applescript
+command /roles:
+    trigger:
+        set {_menu} to new dropdown with id "role_select"
+        set placeholder of {_menu} to "Select your roles..."
+        set min range of {_menu} to 1
+        set max range of {_menu} to 3  # Allow multiple selections
+
+        add new option with value "dev" named "Developer" with description "Get developer updates" with reaction "💻" to options of {_menu}
+        add new option with value "designer" named "Designer" with description "Get design updates" with reaction "🎨" to options of {_menu}
+        add new option with value "tester" named "Tester" with description "Help test features" with reaction "🧪" to options of {_menu}
+        add new option with value "community" named "Community" with description "General updates" with reaction "🌍" to options of {_menu}
+
+        reply with rich components {_menu}
+
+# Handle multi-selection
+on dropdown click:
+    if event-dropdown is "role_select":
+        set {_choices::*} to selected values
+        set {_text} to "You selected: %join {_choices::*} with "", ""%"
+        reply with {_text}
+```
+
+### Entity Dropdown (Roles/Users/Channels)
+
+```applescript
+# User & Role selector
+command /mention:
+    trigger:
+        set {_menu} to new entity dropdown with id "entity_select" targeting "users" and "roles"
+        set placeholder of {_menu} to "Select users or roles..."
+        set min range of {_menu} to 1
+        set max range of {_menu} to 5
+
+        reply with rich "Who do you want to mention?" with component {_menu}
+
+# Handle entity selection
+on entity dropdown click:
+    if event-dropdown is "entity_select":
+        set {_entities::*} to selected entities
+        set {_mentions::*} to mention tags of {_entities::*}
+        reply with "Mentioned: %join {_mentions::*} with "", ""%"
+```
+
+### Channel Selector
+
+```applescript
+command /moveto:
+    trigger:
+        set {_menu} to new entity dropdown with id "channel_select" targeting "channels"
+        set placeholder of {_menu} to "Select a channel..."
+        set min range of {_menu} to 1
+        set max range of {_menu} to 1
+
+        reply with rich "Which channel?" with component {_menu}
+
+on entity dropdown click:
+    if event-dropdown is "channel_select":
+        set {_channel} to first element of selected entities
+        reply with "You selected: %mention tag of {_channel}%"
+```
+
+## Combined Examples
+
+### Poll System
+
+```applescript
+command /poll <text>:
+    trigger:
+        set {_question} to arg-1
+
+        make embed and store it in {_embed}:
+            set title of embed to "📊 Poll"
+            set description of embed to {_question}
+            set embed color of embed to blue
+            set footer of embed to "Vote using the buttons below"
+
+        make new component row and store it in {_row}:
+            add new success button with id "poll_yes" named "Yes" with reaction "✅" to components of row builder
+            add new danger button with id "poll_no" named "No" with reaction "❌" to components of row builder
+            add new secondary button with id "poll_maybe" named "Maybe" with reaction "🤷" to components of row builder
+
+        create new message and store it in {_msg}:
+            add {_embed} to embeds of message
+            add {_row} to rows of message
+
+        reply with {_msg}
+
+on button click:
+    if event-string starts with "poll_":
+        set {_vote} to subtext of event-string from character 6 to length of event-string
+        reply with "You voted: %{_vote}%!"
+```
+
+### Ticket System
+
+```applescript
+command /ticket:
+    trigger:
+        make embed:
+            set title of embed to "🎫 Support Tickets"
+            set description of embed to "Need help? Create a ticket by selecting a category below."
+            set embed color of embed to green
+
+        set {_menu} to new dropdown with id "ticket_type"
+        set placeholder of {_menu} to "Select ticket type..."
+        set min range of {_menu} to 1
+        set max range of {_menu} to 1
+
+        add new option with value "technical" named "Technical Support" with description "Having technical issues?" with reaction "🔧" to options of {_menu}
+        add new option with value "billing" named "Billing" with description "Questions about billing" with reaction "💳" to options of {_menu}
+        add new option with value "report" named "Report" with description "Report a user or issue" with reaction "⚠️" to options of {_menu}
+        add new option with value "other" named "Other" with description "Something else" with reaction "💬" to options of {_menu}
+
+        create new message and store it in {_msg}:
+            add last embed to embeds of message
+            add {_menu} to rows of message
+
+        reply with {_msg}
+
+on dropdown click:
+    if event-dropdown is "ticket_type":
+        set {_type} to first element of selected values
+        reply with "Creating %{_type}% ticket... 🎫"
+        # Create ticket channel, set permissions, etc.
+```
+
+### Pagination with Buttons
+
+```applescript
+command /help [<integer>]:
+    trigger:
+        set {_page} to arg-1 ? 1  # Default to page 1
+        set {_totalPages} to 3
+
+        # Create page embed
+        if {_page} is 1:
+            make embed and store it in {_embed}:
+                set title of embed to "Help - Page 1/3"
+                set description of embed to "**Basic Commands**%nl%/help - This menu%nl%/info - Server info"
+        else if {_page} is 2:
+            make embed and store it in {_embed}:
+                set title of embed to "Help - Page 2/3"
+                set description of embed to "**Moderation**%nl%/kick - Kick a user%nl%/ban - Ban a user"
+        else:
+            make embed and store it in {_embed}:
+                set title of embed to "Help - Page 3/3"
+                set description of embed to "**Fun Commands**%nl%/poll - Create a poll%nl%/dice - Roll dice"
+
+        set embed color of {_embed} to purple
+        set footer of {_embed} to "Page %{_page}%/%{_totalPages}%"
+
+        # Create navigation buttons
+        make new component row and store it in {_row}:
+            if {_page} is 1:
+                add new disabled secondary button with id "prev" named "◀ Previous" to components of row builder
+            else:
+                add new primary button with id "help_prev_%{_page}%" named "◀ Previous" to components of row builder
+
+            if {_page} is {_totalPages}:
+                add new disabled secondary button with id "next" named "Next ▶" to components of row builder
+            else:
+                add new primary button with id "help_next_%{_page}%" named "Next ▶" to components of row builder
+
+        create new message and store it in {_msg}:
+            add {_embed} to embeds of message
+            add {_row} to rows of message
+
+        reply with {_msg}
+
+on button click:
+    if event-string starts with "help_":
+        set {_action} to subtext of event-string from character 6 to (index of "_" in event-string after 5) - 1
+        set {_currentPage} to last element of split event-string at "_" parsed as integer
+
+        if {_action} is "next":
+            make player execute command "/help %{_currentPage} + 1%"
+        else if {_action} is "prev":
+            make player execute command "/help %{_currentPage} - 1%"
+```
+
+### Role Selection Panel
+
+```applescript
+command /getroles:
+    trigger:
+        make embed:
+            set title of embed to "🎭 Role Selection"
+            set description of embed to "Select roles to add to yourself"
+            set embed color of embed to purple
+
+        set {_menu} to new dropdown with id "role_assignment"
+        set placeholder of {_menu} to "Choose roles..."
+        set min range of {_menu} to 0  # Allow unselecting all
+        set max range of {_menu} to 5  # Max 5 roles
+
+        add new option with value "announcements" named "Announcements" with description "Get announcement notifications" with reaction "📢" to options of {_menu}
+        add new option with value "events" named "Events" with description "Be notified of events" with reaction "🎉" to options of {_menu}
+        add new option with value "updates" named "Updates" with description "Get update notifications" with reaction "🔔" to options of {_menu}
+        add new option with value "polls" named "Polls" with description "Participate in polls" with reaction "📊" to options of {_menu}
+
+        create new message and store it in {_msg}:
+            add last embed to embeds of message
+            add {_menu} to rows of message
+
+        reply with {_msg}
+
+on dropdown click:
+    if event-dropdown is "role_assignment":
+        set {_selected::*} to selected values
+
+        # Remove all selectable roles first
+        remove role named "Announcements" from roles of event-member
+        remove role named "Events" from roles of event-member
+        remove role named "Updates" from roles of event-member
+        remove role named "Polls" from roles of event-member
+
+        # Add selected roles
+        loop {_selected::*}:
+            set {_roleName} to loop-value with first letter capitalized
+            set {_role} to role named {_roleName} in event-guild
+            if {_role} is set:
+                add {_role} to roles of event-member
+
+        reply with "Roles updated! ✅"
+```
+
+## Best Practices
+
+1. **Unique IDs** - Always use unique IDs for buttons and dropdowns
+2. **Meaningful names** - Use descriptive IDs like `confirm_delete` not `btn1`
+3. **Always respond** - Reply or defer within 3 seconds
+4. **Disable when done** - Disable buttons after they're used
+5. **Clear placeholders** - Use descriptive placeholder text for dropdowns
+6. **Limit choices** - Don't overwhelm users with too many options
+7. **Visual feedback** - Use emojis and colors to guide users
+8. **Error handling** - Check if roles/channels exist before using them
+
+<Aside type="tip">
+  Test your components thoroughly! Make sure they work on both desktop and mobile Discord clients.
+</Aside>
+
+## Common Pitfalls
+
+### Forgetting to Reply
+
+```applescript
+# ❌ Bad - no response
+on button click:
+    send "User clicked" to console
+
+# ✅ Good - always reply
+on button click:
+    reply with "Button clicked!"
+```
+
+### Not Checking IDs
+
+```applescript
+# ❌ Bad - handles all buttons
+on button click:
+    delete event-member
+
+# ✅ Good - check specific button
+on button click:
+    if event-string is "confirm_delete":
+        delete event-member
+```
+
+### Hardcoded Values
+
+```applescript
+# ❌ Bad - hardcoded page number
+add new button with id "page_2" named "Next"
+
+# ✅ Good - dynamic values
+add new button with id "page_%{_currentPage} + 1%" named "Next"
+```
+
+## Next Steps
+
+- Learn about [Slash Commands](/guides/interactions/slash-commands/)
+- Explore [Modals](/guides/interactions/modals/) for text input
+- Read the [Components Guide](/guides/interactions/components/) for detailed information
+- Check [Basic Examples](/examples/basic/) for more code samples
+
+<Aside type="note">
+  Remember: All interaction IDs must be unique within a message!
+</Aside>

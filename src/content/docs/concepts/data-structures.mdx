@@ -1,0 +1,379 @@
+---
+title: Data Structures
+description: Learn about DiSky's data structure syntax for creating complex objects
+---
+
+import { Aside, Code, Steps } from '@astrojs/starlight/components';
+
+Data Structures provide a clean, YAML-like syntax for creating and configuring complex Discord objects in DiSky. Instead of multiple separate commands, you can define everything in one intuitive section.
+
+<Aside type="note" title="Available since v4.21.0">
+  Data Structures were introduced in DiSky v4.21.0 and are the recommended way to create complex objects.
+</Aside>
+
+## Why Data Structures?
+
+**Before (traditional approach):**
+```applescript
+set {_embed} to new embed
+set title of {_embed} to "Hello"
+set description of {_embed} to "World"
+set embed color of {_embed} to blue
+```
+
+**After (data structures):**
+```applescript
+set {_embed} to new embed:
+    title: "Hello"
+    description: "World"
+    color: blue
+```
+
+Data structures are:
+- **Cleaner**: Less repetitive code
+- **More readable**: YAML-like syntax
+- **Easier to maintain**: All properties in one place
+- **Type-safe**: DiSky validates the structure
+
+## Basic Usage
+
+A data structure uses a section with `key: value` pairs:
+
+```applescript
+set {_embed} to new embed:
+    title: "My Title"
+    description: "My Description"
+    color: orange
+```
+
+### Key Features
+
+- **Simple properties**: `key: value`
+- **No event-values**: Only global variables and script options work in value entries
+- **Indentation matters**: Like YAML, proper indentation is required
+- **Comments allowed**: Use `#` for comments
+
+## Creating Embeds
+
+The most common use of data structures is creating embeds:
+
+```applescript
+set {_embed} to new embed:
+    # Basic information
+    title: "Server Rules"
+    description: "Please follow these rules"
+    color: blue
+
+    # Author
+    author: "Admin Team"
+
+    # Footer
+    footer: "Last updated: %now%"
+
+reply with {_embed}
+```
+
+### Embed with Fields
+
+```applescript
+set {_embed} to new embed:
+    title: "Stats"
+    color: green
+
+    # First field
+    field:
+        name: "Members"
+        value: "1,234"
+        inline: true
+
+    # Second field
+    field:
+        name: "Online"
+        value: "567"
+        inline: true
+
+    # Third field
+    field:
+        name: "Channels"
+        value: "42"
+        inline: true
+
+    # Full-width field
+    field:
+        name: "Server Info"
+        value: "This server was created in 2020"
+        inline: false
+```
+
+<Aside type="tip" title="Repeatable Properties">
+  Properties like `field` can be repeated multiple times. Each occurrence adds a new item.
+</Aside>
+
+## Buttons with Data Structures
+
+Create buttons using data structures:
+
+```applescript
+set {_button} to new button:
+    style: success
+    id: "accept"
+    label: "Accept"
+    emoji: "✅"
+
+reply with rich components {_button}
+```
+
+### Multiple Buttons
+
+```applescript
+set {_row} to new component row:
+    # First button
+    button:
+        style: success
+        id: "yes"
+        label: "Yes"
+
+    # Second button
+    button:
+        style: danger
+        id: "no"
+        label: "No"
+
+reply with rich components {_row}
+```
+
+## Select Menus
+
+Create dropdowns with data structures:
+
+```applescript
+set {_menu} to new dropdown:
+    id: "color_select"
+    placeholder: "Choose a color"
+    min: 1
+    max: 1
+
+    # Options
+    option:
+        label: "Red"
+        value: "red"
+        description: "The color red"
+        emoji: "🔴"
+
+    option:
+        label: "Blue"
+        value: "blue"
+        description: "The color blue"
+        emoji: "🔵"
+
+    option:
+        label: "Green"
+        value: "green"
+        description: "The color green"
+        emoji: "🟢"
+
+reply with rich components {_menu}
+```
+
+## Advanced Messages
+
+Combine multiple elements in a message:
+
+```applescript
+create new message and store it in {_msg}:
+    # Text content
+    content: "Check out this info!"
+
+    # Embed
+    embed:
+        title: "Information"
+        description: "Important details here"
+        color: blue
+
+    # Components
+    row:
+        button:
+            style: primary
+            id: "more_info"
+            label: "More Info"
+
+reply with {_msg}
+```
+
+## Working with Variables
+
+You can use variables in data structures:
+
+```applescript
+set {_username} to "John"
+set {_score} to 100
+
+set {_embed} to new embed:
+    title: "Player Stats"
+    description: "Stats for %{_username}%"
+
+    field:
+        name: "Score"
+        value: "%{_score}%"
+        inline: true
+```
+
+<Aside type="caution">
+  Event-values (like `event-user`) don't work directly in value entries. Store them in variables first.
+</Aside>
+
+## Available Data Structures
+
+DiSky supports data structures for:
+
+- **Embeds** (`new embed`)
+- **Buttons** (`new button`)
+- **Dropdown Menus** (`new dropdown`)
+- **Component Rows** (`new component row`)
+- **Messages** (`create new message`)
+- **Modals** (`create new modal`)
+- **Slash Commands** (`new slash command`)
+
+Check the [syntax documentation](https://docs.disky.me/) for complete lists of available properties for each type.
+
+## Common Patterns
+
+### Embed with Dynamic Content
+
+```applescript
+command /serverinfo:
+    trigger:
+        set {_memberCount} to size of all members
+        set {_channelCount} to size of all channels
+
+        set {_embed} to new embed:
+            title: "Server Information"
+            color: blue
+
+            field:
+                name: "Members"
+                value: "%{_memberCount}%"
+                inline: true
+
+            field:
+                name: "Channels"
+                value: "%{_channelCount}%"
+                inline: true
+
+            footer: "Server ID: %id of event-guild%"
+            timestamp: now
+
+        reply with {_embed}
+```
+
+### Confirmation Message
+
+```applescript
+set {_msg} to new message:
+    content: "Are you sure you want to proceed?"
+
+    row:
+        button:
+            style: success
+            id: "confirm_yes"
+            label: "Yes"
+
+        button:
+            style: danger
+            id: "confirm_no"
+            label: "No"
+
+reply with {_msg}
+```
+
+### Role Selection Menu
+
+```applescript
+set {_menu} to new dropdown:
+    id: "role_select"
+    placeholder: "Select your roles"
+    min: 1
+    max: 3
+
+    option:
+        label: "Developer"
+        value: "role_dev"
+        description: "Get notified about code updates"
+        emoji: "💻"
+
+    option:
+        label: "Artist"
+        value: "role_art"
+        description: "Get notified about art updates"
+        emoji: "🎨"
+
+    option:
+        label: "Tester"
+        value: "role_test"
+        description: "Help test new features"
+        emoji: "🧪"
+
+reply with rich components {_menu}
+```
+
+## Best Practices
+
+1. **Use proper indentation** - Makes structures readable
+2. **Add comments** - Explain complex structures
+3. **Store in variables** - Reuse structures when needed
+4. **Validate data** - Check values before using them
+5. **Keep it organized** - Group related properties together
+
+## Comparison: Traditional vs Data Structures
+
+### Creating a Complex Embed
+
+**Traditional:**
+```applescript
+set {_embed} to new embed
+set title of {_embed} to "Welcome"
+set description of {_embed} to "Hello!"
+set embed color of {_embed} to blue
+add inline field named "Members" with value "100" to fields of {_embed}
+add inline field named "Online" with value "50" to fields of {_embed}
+set footer of {_embed} to "Welcome bot"
+set timestamp of {_embed} to now
+```
+
+**Data Structures:**
+```applescript
+set {_embed} to new embed:
+    title: "Welcome"
+    description: "Hello!"
+    color: blue
+
+    field:
+        name: "Members"
+        value: "100"
+        inline: true
+
+    field:
+        name: "Online"
+        value: "50"
+        inline: true
+
+    footer: "Welcome bot"
+    timestamp: now
+```
+
+The data structure approach is:
+- 50% fewer lines
+- More readable
+- Easier to modify
+- Less error-prone
+
+<Aside type="tip">
+  Use data structures for new code. They're the modern, recommended approach!
+</Aside>
+
+## Next Steps
+
+- Learn about [Error Handling](/concepts/error-handling/)
+- Understand [Asynchronous Operations](/concepts/async/)
+- Create [Interactive Components](/guides/interactions/components/)
+- Build [Advanced Messages](/guides/messages/advanced-messages/)
