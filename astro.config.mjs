@@ -9,12 +9,14 @@ export default defineConfig({
 		starlight({
 			plugins: [starlightThemeObsidian({
 				backlinks: false,
-				graph: {
-					enabled: true,
-				},
+				graph: false,
 			})],
 			title: 'DiSky',
 			description: 'Official documentation for DiSky - A powerful Skript addon for Discord bots',
+			components: {
+				// Override du composant Banner pour afficher une bannière sur toutes les pages
+				Banner: './src/components/Banner.astro',
+			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/DiSkyOrg/DiSky' },
 				{ icon: 'discord', label: 'Discord', href: 'https://disky.me/discord' }
@@ -67,8 +69,7 @@ export default defineConfig({
 								{ label: 'Overview', slug: 'guides/interactions/overview' },
 								{ label: 'Components', slug: 'guides/interactions/components' },
 								{ label: 'Slash Commands', slug: 'guides/interactions/slash-commands' },
-								{ label: 'Modals', slug: 'guides/interactions/modals' },
-								{ label: 'Select Menus', slug: 'guides/interactions/select-menus' },
+								{ label: 'Modals', slug: 'guides/interactions/modals' }
 							],
 						},
 						{
@@ -94,31 +95,6 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Add-ons',
-					collapsed: true,
-					items: [
-						{
-							label: 'SkImage',
-							collapsed: true,
-							items: [
-								{ label: 'Getting Started', slug: 'addons/skimage/getting-started' },
-								{ label: 'Working with Images', slug: 'addons/skimage/images' },
-								{ label: 'Image Effects', slug: 'addons/skimage/effects' },
-								{ label: 'GIFs', slug: 'addons/skimage/gifs' },
-								{ label: 'Graphics & Drawing', slug: 'addons/skimage/graphics' },
-							],
-						},
-						{
-							label: 'BooSK',
-							collapsed: true,
-							items: [
-								{ label: 'Getting Started', slug: 'addons/boosk/getting-started' },
-								{ label: 'Creating Books', slug: 'addons/boosk/creating-books' },
-							],
-						},
-					],
-				},
-				{
 					label: 'Examples',
 					items: [
 						{ label: 'Basic Examples', slug: 'examples/basic' },
@@ -129,8 +105,6 @@ export default defineConfig({
 					label: 'Migration Guides',
 					collapsed: true,
 					items: [
-						{ label: 'v4.24', slug: 'migration/v4-24' },
-						{ label: 'v4.25', slug: 'migration/v4-25' },
 						{ label: 'v4.26', slug: 'migration/v4-26' },
 					],
 				},
