@@ -72,7 +72,6 @@ export default defineConfig({
 								{ label: 'Components', slug: 'guides/interactions/components' },
 								{ label: 'Slash Commands', slug: 'guides/interactions/slash-commands' },
 								{ label: 'Modals', slug: 'guides/interactions/modals' },
-								{ label: 'Select Menus', slug: 'guides/interactions/select-menus' },
 							],
 						},
 						{
@@ -167,8 +166,6 @@ export default defineConfig({
 					items: [
 						{ label: 'v4.27', slug: 'migration/v4-27' },
 						{ label: 'v4.26', slug: 'migration/v4-26' },
-						{ label: 'v4.25', slug: 'migration/v4-25' },
-						{ label: 'v4.24', slug: 'migration/v4-24' },
 					],
 				},
 			],
