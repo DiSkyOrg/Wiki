@@ -1,0 +1,214 @@
+---
+title: Migrating to v4.27
+description: Guide for upgrading from DiSky v4.26 to v4.27
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+DiSky v4.27.0 introduces new features and improvements for thread management, server tags, and slash command structures. This migration guide will help you update your DiSky scripts to be compatible with the new version.
+
+## New Features
+
+### Thread Owner and Message Count
+
+You can now retrieve the owner of a thread channel and get the total message count of a thread. These expressions work with thread channels, including forum posts.
+
+```applescript
+# Get the owner of a thread
+set {_owner} to owner of {_thread}
+set {_owner} to thread owner of {_threadChannel}
+
+# Get the message count of a thread
+set {_count} to message count of {_thread}
+set {_msgCount} to thread message count of {_threadChannel}
+```
+
+**Use Cases:**
+- Check who created a forum post
+- Display thread statistics in embeds
+- Moderate threads based on their creator
+- Track activity in forum channels
+
+<Aside type="tip">
+  These expressions are especially useful in forum channels where posts are represented as threads.
+</Aside>
+
+**Example - Forum Post Information:**
+
+```applescript
+on thread create:
+    set {_owner} to owner of event-threadchannel
+    set {_count} to message count of event-threadchannel
+
+    send "New post created by %discord name of {_owner}% with %{_count}% message(s)" to channel with id "logs-channel-id"
+```
+
+**Example - Thread Statistics Embed:**
+
+```applescript
+command /threadstats:
+    trigger:
+        # Verify we're in a thread
+        if event-channel is not a thread channel:
+            reply with "❌ This command only works in threads!"
+            stop
+
+        set {_owner} to thread owner of event-channel
+        set {_count} to message count of event-channel
+        set {_members::*} to members of event-channel
+
+        make embed:
+            set title of embed to "Thread Statistics"
+            set embed color of embed to blue
+
+            add field named "Created by" with value mention tag of {_owner} to fields of embed
+            add field named "Messages" with value "%{_count}%" to fields of embed
+            add field named "Members" with value "%size of {_members::*}%" to fields of embed
+
+        reply with last embed
+```
+
+### Member Equipped Server Tag
+
+Added support for retrieving a member's equipped server tag (also called "primary guild tag"). This feature allows you to access the tag that a user has chosen to display on their profile for a specific server.
+
+```applescript
+# Get the equipped server tag of a user
+set {_tag} to user tag of {_user}
+set {_tag} to user primary guild tag of {_member}
+
+# Get the tag icon URL
+set {_icon} to user tag icon of {_user}
+set {_iconUrl} to user primary guild tag icon url of {_user}
+```
+
+<Aside type="note" title="Server Tags">
+  Server tags are a Discord feature that allows users to choose a tag representing their identity or role in a server. The "equipped" tag is the one displayed on their profile.
+</Aside>
+
+**Example - Display User Tag:**
+
+```applescript
+discord command profile [<user>]:
+    prefixes: !
+    trigger:
+        set {_user} to arg-1 ? event-user
+        set {_tag} to user tag of {_user}
+
+        if {_tag} is set:
+            set {_icon} to user tag icon url of {_user}
+            make embed:
+                set title of embed to "%discord name of {_user}%'s Profile"
+                set description of embed to "Equipped Tag: %discord name of {_tag}%"
+                if {_icon} is set:
+                    set thumbnail of embed to {_icon}
+            reply with last embed
+        else:
+            reply with "❌ This user has no equipped server tag."
+```
+
+### Hyphen Support in Slash Command Arguments
+
+You can now use hyphens (`-`) in slash command argument names for improved readability. Previously, you had to use underscores or camelCase.
+
+**Before v4.27:**
+
+```applescript
+# Had to use underscores or camelCase
+add new string option named "user_name" with description "Enter name" to options of {_cmd}
+add new integer option named "maxCount" with description "Max count" to options of {_cmd}
+```
+
+**Since v4.27:**
+
+```applescript
+# Now you can use hyphens for better readability
+add new string option named "user-name" with description "Enter name" to options of {_cmd}
+add new integer option named "max-count" with description "Max count" to options of {_cmd}
+```
+
+<Aside type="tip" title="Improved Readability">
+  This enhancement allows for more readable argument names that follow Discord's naming conventions, especially when you want to separate words without using underscores or camelCase.
+</Aside>
+
+**Example - Better Argument Names:**
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "user-info" with description "Get information about a user"
+
+    # Use hyphens for cleaner, more readable argument names
+    set {_userOpt} to new user option named "target-user" with description "User to check"
+    add {_userOpt} to options of {_cmd}
+
+    set {_avatarOpt} to new boolean option named "show-avatar" with description "Show user avatar"
+    add {_avatarOpt} to options of {_cmd}
+
+    set {_rolesOpt} to new boolean option named "include-roles" with description "Include user roles"
+    add {_rolesOpt} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "user-info":
+        set {_user} to argument "target-user" as user
+        set {_showAvatar} to argument "show-avatar" as boolean
+        set {_includeRoles} to argument "include-roles" as boolean
+
+        # Process command...
+        reply with "Processing user info..."
+```
+
+## Migration Summary
+
+<Steps>
+
+1. **No Breaking Changes**
+
+   Version 4.27.0 is fully backward-compatible. You don't need to modify existing code.
+
+2. **Optional Upgrades**
+
+   Consider using the new features where appropriate:
+   - Use thread owner/message count expressions in forum handlers
+   - Access user tags for profile features
+   - Rename slash command arguments to use hyphens for better readability
+
+3. **Update DiSky**
+
+   Download v4.27.0 from [Modrinth](https://modrinth.com/plugin/disky) or [GitHub](https://github.com/DiSkyOrg/DiSky/releases)
+
+4. **Restart Server**
+
+   Always restart your server (don't use `/reload`) after updating
+
+</Steps>
+
+## Summary
+
+Version 4.27.0 focuses on quality-of-life improvements:
+
+- **Thread Management**: New expressions for thread owner and message count
+- **Server Tags**: Access to equipped server tags for users
+- **Better Slash Commands**: Hyphen support in argument names for clearer naming
+
+All these features are non-breaking and can be adopted gradually in your existing code.
+
+## Next Steps
+
+- Learn about [Forum Channels](/guides/guild/forums/) to use thread expressions
+- Check out [Slash Commands](/guides/interactions/slash-commands/) for argument naming
+- Explore [Migration to v4.26](/migration/v4-26/) if you haven't upgraded yet
+
+## Need Help?
+
+If you encounter issues during migration:
+
+1. Check the [FAQ](/getting-started/faq/)
+2. Search existing issues on [GitHub](https://github.com/DiSkyOrg/DiSky/issues)
+3. Ask in our [Discord server](https://disky.me/discord)
+
+Remember to include:
+- Your DiSky version (`/ver disky`)
+- The specific error message
+- Relevant code snippet
