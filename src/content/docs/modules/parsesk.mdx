@@ -1,0 +1,517 @@
+---
+title: ParseSK
+description: A premium Skript addon that allows you to parse and validate Skript code programmatically, with optional execution and comprehensive error handling.
+---
+
+import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="caution">
+ParseSK is only available for **Patreon supporters** of [ItsTheSky](https://www.patreon.com/itsthesky). Access the plugin through the [Patreon-only Resources](https://resources.disky.me/resources/5) page.
+</Aside>
+
+<Aside type="danger">
+**Important**: ParseSK is a **separate Skript addon**, not a DiSky module! Install it as a standalone plugin in your `plugins/` folder, not in `plugins/DiSky/modules/`.
+</Aside>
+
+## Overview
+
+ParseSK is a simple but powerful Skript addon that enables you to programmatically parse and validate any Skript code from strings. You can check code for syntax errors, handle parsing errors gracefully, and optionally execute the parsed code—all at runtime.
+
+### Key Features
+
+- **String-to-Code Parsing**: Parse any valid Skript code from a string
+- **Error Handling**: Programmatically capture and handle parsing errors
+- **Execution Control**: Choose whether to execute parsed code or only validate it
+- **Runtime Validation**: Validate user-submitted code, custom scripts, or dynamic commands
+- **Development Tool**: Perfect for code editors, validation systems, or educational bots
+
+## Installation
+
+<Steps>
+
+1. **Get Patreon Access**
+
+   Subscribe to [ItsTheSky's Patreon](https://www.patreon.com/itsthesky) to access premium addons.
+
+2. **Download ParseSK**
+
+   Download the latest version from the [Patreon resources page](https://resources.disky.me/resources/5).
+
+3. **Install as Plugin**
+
+   Place the JAR file in your server's **`plugins/`** folder (not in DiSky's modules folder).
+
+4. **Restart Your Server**
+
+   Restart your server to load ParseSK.
+
+5. **Verify Installation**
+
+   Check your console for confirmation that ParseSK has loaded successfully.
+
+</Steps>
+
+## Syntax Pattern
+
+ParseSK adds a single effect with a simple, flexible pattern:
+
+```applescript
+eval[uate] [without executing] %string% [and store (it|the error[s]) in %-objects%]
+```
+
+### Parameters
+
+- **`%string%`**: The Skript code to parse (as a string)
+- **`without executing`** (optional): Parse and validate only, don't execute the code
+- **`and store ... in %-objects%`** (optional): Store parsing errors in a variable
+
+## Usage Examples
+
+### Parse and Execute
+
+Parse code from a string and execute it immediately:
+
+<Tabs>
+<TabItem label="Basic Example">
+
+```applescript
+# Simple code execution
+set {_code} to "send ""&2Hello, world!"""
+eval {_code}
+
+# The code is parsed and executed
+# Output: Hello, world! (in green)
+```
+
+</TabItem>
+<TabItem label="With Error Handling">
+
+```applescript
+# Build code dynamically
+add "set {_test} to 1" to {_test::*}
+add "if {_test} is bigger than 0:" to {_test::*}
+add "    send ""&2Hello, world!""" to {_test::*}
+add "else:" to {_test::*}
+add "    huh send ""&4Goodbye, world!""" to {_test::*}  # Intentional error on this line
+
+set {_to-parse} to join {_test::*} with nl
+
+# Parse and execute with error handling
+eval {_to-parse} and store it in {_errors::*}
+
+# Check for errors
+if {_errors::*} is not set:
+    send "&aNo errors found in the string."
+else:
+    send "&4Errors found in the given code:"
+    loop {_errors::*}:
+        send " &c- %loop-value%"
+```
+
+</TabItem>
+</Tabs>
+
+### Parse Without Executing
+
+Validate code syntax without executing it:
+
+```applescript
+# Build potentially dangerous code
+add "set {_test} to 1" to {_test::*}
+add "if {_test} is bigger than 0:" to {_test::*}
+add "    send ""&2Hello, world!""" to {_test::*}
+add "else:" to {_test::*}
+add "    huh send ""&4Goodbye, world!""" to {_test::*}  # Error: "huh" is not valid
+
+set {_to-parse} to join {_test::*} with nl
+
+# Parse WITHOUT executing (validation only)
+eval without executing {_to-parse} and store it in {_errors::*}
+
+# Check the results
+if {_errors::*} is not set:
+    send "&aNo errors found in the string."
+else:
+    send "&4Errors found in the given code:"
+    loop {_errors::*}:
+        send " &c- %loop-value%"
+```
+
+<Aside type="tip">
+Use `eval without executing` when you want to validate user-submitted code before deciding whether to run it. This is essential for security and error prevention.
+</Aside>
+
+## Practical Applications
+
+### Code Validator Bot
+
+Create a Discord bot that validates Skript code:
+
+```applescript
+discord command validate <text>:
+    prefixes: !
+    trigger:
+        # Get the code from the user
+        set {_code} to arg-1
+
+        # Parse without executing
+        eval without executing {_code} and store it in {_errors::*}
+
+        # Send results
+        if {_errors::*} is not set:
+            make embed:
+                set title of embed to "✅ Valid Code"
+                set description of embed to "No syntax errors found!"
+                set color of embed to green
+            reply with last embed
+        else:
+            # Build error message
+            set {_errorMsg} to join {_errors::*} with nl
+
+            make embed:
+                set title of embed to "❌ Syntax Errors"
+                set description of embed to "```%nl%%{_errorMsg}%%nl%```"
+                set color of embed to red
+            reply with last embed
+```
+
+### Dynamic Command System
+
+Create commands that can be defined at runtime:
+
+```applescript
+# Define a custom command at runtime
+discord command addcmd <string> <text>:
+    prefixes: !
+    roles: Administrator
+    trigger:
+        set {_name} to arg-1
+        set {_code} to arg-2
+
+        # Validate the code first
+        eval without executing {_code} and store it in {_errors::*}
+
+        if {_errors::*} is set:
+            reply with "**Error**: Invalid code!%nl%```%join {_errors::*} with nl%```"
+            stop
+
+        # Store the command
+        set {custom-commands::%{_name}%} to {_code}
+        reply with "Custom command `%{_name}%` created!"
+
+# Execute custom commands
+discord command run <string>:
+    prefixes: !
+    trigger:
+        set {_name} to arg-1
+
+        if {custom-commands::%{_name}%} is not set:
+            reply with "Command `%{_name}%` not found!"
+            stop
+
+        # Execute the stored command
+        set {_code} to {custom-commands::%{_name}%}
+        eval {_code} and store it in {_errors::*}
+
+        if {_errors::*} is set:
+            reply with "**Execution Error**: %join {_errors::*} with nl%"
+```
+
+### Script Testing Framework
+
+Build an automated testing system:
+
+```applescript
+# Test runner command
+command /runtest <text>:
+    permission: admin.test
+    trigger:
+        set {_testName} to arg-1
+        set {_code} to {tests::%{_testName}%}
+
+        if {_code} is not set:
+            send "&cTest '%{_testName}%' not found!"
+            stop
+
+        send "&eRunning test: &f%{_testName}%"
+
+        # Execute test code
+        eval {_code} and store it in {_errors::*}
+
+        if {_errors::*} is not set:
+            send "&a✓ Test passed!"
+        else:
+            send "&c✗ Test failed with errors:"
+            loop {_errors::*}:
+                send "&c  - %loop-value%"
+
+# Define tests
+on load:
+    # Test 1: Variable operations
+    set {tests::variables} to "set {_x} to 5%nl%if {_x} is 5:%nl%    send ""&aTest passed"""
+
+    # Test 2: List operations
+    set {tests::lists} to "add 1, 2, 3 to {_list::*}%nl%if size of {_list::*} is 3:%nl%    send ""&aTest passed"""
+```
+
+### Code Snippet Library
+
+Create a library of reusable code snippets:
+
+```applescript
+# Store code snippet
+discord command savesnippet <string> <text>:
+    prefixes: !
+    roles: Developer
+    trigger:
+        set {_name} to arg-1
+        set {_code} to arg-2
+
+        # Validate syntax
+        eval without executing {_code} and store it in {_errors::*}
+
+        if {_errors::*} is set:
+            reply with "Invalid code syntax!"
+            stop
+
+        set {snippets::%{_name}%} to {_code}
+        reply with "Snippet `%{_name}%` saved!"
+
+# Use code snippet
+discord command usesnippet <string>:
+    prefixes: !
+    trigger:
+        set {_name} to arg-1
+
+        if {snippets::%{_name}%} is not set:
+            reply with "Snippet not found!"
+            stop
+
+        # Execute the snippet
+        eval {snippets::%{_name}%}
+        reply with "Snippet executed!"
+```
+
+### Educational Bot
+
+Create a bot that teaches Skript:
+
+```applescript
+discord command learn <text>:
+    prefixes: !
+    trigger:
+        set {_code} to arg-1
+
+        # First validate
+        eval without executing {_code} and store it in {_errors::*}
+
+        make embed:
+            if {_errors::*} is not set:
+                set title of embed to "📚 Code Analysis"
+                set description of embed to "✅ Your code is syntactically correct!"
+                add field named "Code" with value "```applescript%nl%%{_code}%nl%```" to embed
+                add field named "Tip" with value "Try executing this code with `!execute <code>`" to embed
+                set color of embed to green
+            else:
+                set title of embed to "📚 Code Analysis"
+                set description of embed to "❌ Your code has errors. Let's fix them!"
+                add field named "Code" with value "```applescript%nl%%{_code}%nl%```" to embed
+                add field named "Errors" with value "```%nl%%join {_errors::*} with nl%%nl%```" to embed
+                set color of embed to red
+
+        reply with last embed
+```
+
+## Security Considerations
+
+<Aside type="danger">
+**Security Warning**: Never allow untrusted users to execute arbitrary code! Always validate and sanitize user input before parsing or executing.
+</Aside>
+
+### Safe Validation Practices
+
+1. **Always Validate First**: Use `eval without executing` before allowing execution
+2. **Restrict Access**: Limit code execution to trusted users/roles
+3. **Sandbox Environment**: Consider running code in a controlled environment
+4. **Whitelist Approach**: Only allow specific, pre-approved code patterns
+5. **Log Everything**: Keep logs of all code execution attempts
+
+### Example: Safe Execution
+
+```applescript
+discord command safeeval <text>:
+    prefixes: !
+    roles: Administrator  # Restrict to admins only
+    trigger:
+        set {_code} to arg-1
+
+        # Blacklist dangerous operations
+        if {_code} contains "delete" or "op" or "execute console command":
+            reply with "❌ Code contains prohibited operations!"
+            stop
+
+        # Validate syntax
+        eval without executing {_code} and store it in {_errors::*}
+
+        if {_errors::*} is set:
+            reply with "❌ Syntax errors detected. Code not executed."
+            stop
+
+        # Log the execution
+        log "User %discord id of event-user% executing: %{_code}%" to "parsesk-executions.log"
+
+        # Execute safely
+        eval {_code} and store it in {_errors::*}
+
+        if {_errors::*} is set:
+            reply with "❌ Execution failed: %join {_errors::*} with nl%"
+        else:
+            reply with "✅ Code executed successfully!"
+```
+
+## Error Handling
+
+### Understanding Error Output
+
+When parsing fails, ParseSK returns error messages similar to Skript's console output:
+
+```
+Line 5: 'huh send' is not a valid effect
+```
+
+### Comprehensive Error Handling
+
+```applescript
+# Advanced error handling
+set {_code} to "..."
+
+eval without executing {_code} and store it in {_errors::*}
+
+if {_errors::*} is set:
+    # Count errors
+    set {_errorCount} to size of {_errors::*}
+
+    # Categorize by severity (if error contains certain keywords)
+    loop {_errors::*}:
+        if loop-value contains "is not a valid":
+            add loop-value to {_syntax::*}
+        else if loop-value contains "can't understand":
+            add loop-value to {_parsing::*}
+        else:
+            add loop-value to {_other::*}
+
+    # Send detailed report
+    send "&c%{_errorCount}% error(s) found:"
+    send "&eSyntax Errors: %size of {_syntax::*}%"
+    send "&eParser Errors: %size of {_parsing::*}%"
+    send "&eOther Errors: %size of {_other::*}%"
+```
+
+## Troubleshooting
+
+### Code Not Executing
+
+<Aside type="note">
+If your code validates but doesn't execute as expected, check these common issues:
+</Aside>
+
+- **Using `without executing`**: Make sure you're not using the validation-only mode when you want execution
+- **Variable Scope**: Variables created in eval'd code may have different scope
+- **Event Context**: Some code requires specific event contexts to work properly
+
+### Parse Errors
+
+Common causes of parse errors:
+
+- **Incorrect Indentation**: Skript is very strict about indentation
+- **Missing Line Breaks**: Use `nl` (newline) when building multi-line code
+- **Quote Escaping**: Properly escape quotes in strings: `""quoted text""`
+
+### Performance Concerns
+
+<Aside type="caution">
+Parsing code can be resource-intensive. Avoid parsing large amounts of code frequently, and implement rate limiting for user-submitted code.
+</Aside>
+
+## Best Practices
+
+1. **Validate Before Executing**: Always validate code before execution
+2. **Limit Access**: Restrict code execution to trusted users
+3. **Error Feedback**: Provide clear error messages to users
+4. **Rate Limiting**: Prevent abuse by limiting how often users can parse code
+5. **Code Review**: Manually review stored code snippets periodically
+6. **Version Control**: Keep track of code changes in your snippet library
+
+## Advanced Techniques
+
+### Multi-line Code Builder
+
+```applescript
+# Helper function for building multi-line code
+function buildCode(lines: strings) :: string:
+    return join {_lines::*} with nl
+
+# Usage
+set {_lines::*} to "set {_x} to 5", "send ""%{_x}%"""
+set {_code} to buildCode({_lines::*})
+eval {_code}
+```
+
+### Code Template System
+
+```applescript
+# Define templates with placeholders
+set {template::greet} to "send ""Hello, %1%!"""
+
+# Fill template
+function fillTemplate(template: string, args: strings) :: string:
+    set {_result} to {_template}
+    loop {_args::*}:
+        replace "%loop-index%" with loop-value in {_result}
+    return {_result}
+
+# Use template
+set {_code} to fillTemplate({template::greet}, "World")
+eval {_code}
+# Output: Hello, World!
+```
+
+## Reference
+
+### Effect Syntax
+
+```applescript
+eval[uate] [without executing] %string% [and store (it|the error[s]) in %-objects%]
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `%string%` | String | Yes | The Skript code to parse |
+| `without executing` | Flag | No | Only validate, don't execute |
+| `%-objects%` | List | No | Variable to store errors (if any) |
+
+### Return Values
+
+- **No errors**: `{_errors::*}` will not be set
+- **With errors**: `{_errors::*}` will contain a list of error messages
+
+## Next Steps
+
+<Aside>
+Expand your Skript knowledge with these resources:
+</Aside>
+
+- [DiSky Documentation](/guides/getting-started) - Learn DiSky for Discord integration
+- [Skript Hub](https://skripthub.net/) - Browse Skript resources and documentation
+- [Other Modules](/modules/lavaplayer) - Explore more premium tools
+- [Security Best Practices](/guides/security) - Learn how to secure your scripts
+
+## Support
+
+Need help with ParseSK? Get support:
+
+- [DiSky Discord Server](https://discord.gg/whMrSaYZQV)
+- [Patreon Page](https://www.patreon.com/itsthesky)
+- [Skript Hub](https://skripthub.net/)

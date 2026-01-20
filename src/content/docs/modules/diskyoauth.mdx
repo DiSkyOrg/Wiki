@@ -1,0 +1,462 @@
+---
+title: DiSkyOAuth
+description: A premium DiSky module that enables Discord OAuth2 authentication, allowing bots to access user information, manage server joins, and handle token refreshing.
+---
+
+import { Aside, Code, Steps } from '@astrojs/starlight/components';
+
+<Aside type="caution">
+DiSkyOAuth is only available for **Patreon supporters** of [ItsTheSky](https://www.patreon.com/itsthesky). Access the module through the [Patreon-only Resources](https://resources.disky.me/resources/7) page.
+</Aside>
+
+## Introduction
+
+The **DiSkyOAuth** module allows your DiSky bots to authenticate Discord users through OAuth2, providing access to user information like email, premium status, mutual servers, and more. It also enables advanced features like automatic server joining and token refreshing.
+
+This module implements a complete Discord OAuth2 flow with a built-in web server to handle redirects and process authorization codes.
+
+## Features
+
+- **User Authentication**: Allow users to authorize your bot to access their Discord account data
+- **Data Access**: Get user's email, premium status, guilds, and more
+- **Server Management**: Make authenticated users join servers with specific roles and settings
+- **Token Refreshing**: Automatically refresh OAuth tokens when they expire
+- **Comprehensive Events**: Handle OAuth requests and token refresh events
+
+## Installation
+
+<Steps>
+
+1. **Get Patreon Access**
+
+   Subscribe to [ItsTheSky's Patreon](https://www.patreon.com/itsthesky) to access premium modules.
+
+2. **Download DiSkyOAuth**
+
+   Download the module from the [DiSky Resources page](https://resources.disky.me/resources/7).
+
+3. **Install the Module**
+
+   Place the JAR file in your `plugins/DiSky/modules` folder.
+
+4. **Restart Your Server**
+
+   Restart your Minecraft server to load the module.
+
+5. **Configure the Module**
+
+   Edit the configuration file at `plugins/DiSky/modules/DiSkyOAuth/config.yml`.
+
+</Steps>
+
+## Configuration
+
+The module requires configuration before use. Edit `plugins/DiSky/modules/DiSkyOAuth/config.yml`:
+
+```yaml
+# The port where the redirect web server will be used
+port: 16334
+
+# The URL to redirect in case someone accesses the root of the server
+redirect-url: "https://disky.me/"
+
+# The full, accessible URL to the server, including port
+# This must be added to the OAuth2 redirect URIs in your Discord application
+server-url: "http://your-server-address:16334"
+
+# Enable debug mode for detailed logs
+debug: false
+```
+
+<Aside type="caution">
+You must set up a **valid, publicly accessible URL** in the `server-url` field. This URL must be added to your Discord application's OAuth2 redirect URIs.
+</Aside>
+
+## Discord Application Setup
+
+Before using the module, configure a Discord application:
+
+<Steps>
+
+1. **Create Application**
+
+   Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a new application.
+
+2. **Configure OAuth2**
+
+   Navigate to the **OAuth2** tab in your application settings.
+
+3. **Add Redirect URIs**
+
+   Add your server URL (from config) to the "Redirect URIs" section.
+
+4. **Copy Credentials**
+
+   Copy your **Client ID** and **Client Secret** for use in DiSky.
+
+5. **Set Scopes**
+
+   Configure the desired OAuth2 scopes (identify, email, guilds, etc.) based on what data you need.
+
+</Steps>
+
+<Aside type="tip">
+Only request the OAuth2 scopes you actually need. This follows the principle of least privilege and improves user trust.
+</Aside>
+
+## Usage Examples
+
+### Registering an OAuth Client
+
+Register your OAuth client when your bot starts:
+
+```applescript
+# Register the OAuth client in your bot's ready event
+on ready:
+    # Register the OAuth client with Discord credentials
+    register oauth client named "test" with id "YOUR_CLIENT_ID" with secret "YOUR_CLIENT_SECRET" with scopes "identify", "email", "guilds" using event-bot
+```
+
+### Creating an Authorization Flow
+
+Create a command that initiates the OAuth flow:
+
+```applescript
+slash command oauth:
+    bot: disky
+    guilds: YOUR_GUILD_ID  # Optional: makes command guild-specific
+    description: "Authorize with Discord"
+
+    trigger:
+        # Get OAuth URL for the registered client
+        set {_url} to oauth url of client "test"
+
+        # Create a button that links to the authorization URL
+        set {_btn} to a new button:
+            url: {_url}
+            label: "Authorize"
+            style: link
+            emote: reaction "🔗"
+
+        # Send the button to the user
+        reply with hidden rich components {_btn} and store it in {_msg}
+
+        # Store data for later use
+        set {OAUTH::%discord id of event-user%::MS} to now
+        set {OAUTH::%discord id of event-user%::MESSAGE} to {_msg}
+```
+
+### Handling OAuth Requests
+
+Handle successful OAuth authorizations:
+
+```applescript
+on oauth request received:
+    # Retrieve stored message and timestamp
+    set {_msg} to {OAUTH::%discord id of oauth user%::MESSAGE}
+    set {_ms} to {OAUTH::%discord id of oauth user%::MS}
+
+    # Store the tokens securely
+    set {TOKENS::%discord id of event-user%::ACCESS} to oauth access token
+    set {TOKENS::%discord id of event-user%::REFRESH} to oauth refresh token
+    set {TOKENS::%discord id of event-user%::EXPIRE} to oauth expires in
+
+    # Build response with user information
+    add "User: %oauth user%" to {_m::*}
+    add "" to {_m::*}
+    add "Gathered Guilds [`%size of oauth user's guilds%`]:" to {_m::*}
+
+    # List all guilds the user is in
+    loop guilds of oauth user:
+        add "- %discord name of loop-value%" to {_m::*}
+
+    # Display additional user information
+    add "User Premium Type: %premium type of oauth user%" to {_m::*}
+    add "User Email: ||%email of oauth user%||" to {_m::*}
+    add "" to {_m::*}
+    add "> **You took %difference between now and {_ms}% to authorize :>**" to {_m::*}
+
+    # Update the message with results
+    edit {_msg} to show (join {_m::*} with nl)
+```
+
+### Refreshing OAuth Tokens
+
+Implement token refreshing to maintain access:
+
+```applescript
+# Command to refresh OAuth tokens
+slash command refresh_oauth [<boolean="force">]:
+    bot: disky
+    description: "Refresh your OAuth Token"
+
+    trigger:
+        # Check if user has authorized
+        if {TOKENS::%discord id of event-user%::REFRESH} is not set:
+            reply with "You didn't authorize the bot yet! Use `/oauth` first."
+            stop
+
+        # Initiate token refresh
+        set {_refresh} to {TOKENS::%discord id of event-user%::REFRESH}
+        refresh oauth token {_refresh} for event-user with client "test"
+
+        # Store message for later update
+        reply with "Refreshing your token..." and store it in {_msg}
+        set {REFRESH::%discord id of event-user%::MESSAGE} to {_msg}
+
+# Handle token refresh completion
+on oauth token refresh:
+    set {_msg} to {REFRESH::%discord id of event-user%::MESSAGE}
+
+    # Check if refresh failed
+    if refresh failed:
+        edit {_msg} to show "Failed to refresh your token! Use /oauth to authorize again."
+        stop
+
+    # Store new tokens
+    set {TOKENS::%discord id of event-user%::ACCESS} to oauth access token
+    set {TOKENS::%discord id of event-user%::REFRESH} to oauth refresh token
+    set {TOKENS::%discord id of event-user%::EXPIRE} to oauth expires in
+
+    # Confirm successful refresh
+    edit {_msg} to show "Token refreshed successfully!"
+```
+
+### Making Users Join Servers
+
+Use OAuth to add users to servers automatically:
+
+```applescript
+# In the OAuth request event
+on oauth request received:
+    # Make the user join a server with specific configuration
+    make oauth user join server with id "YOUR_SERVER_ID" with nickname "New Member" with roles "ROLE_ID_1", "ROLE_ID_2"
+
+    # You can also mute/deafen users on join
+    make oauth user join server with id "YOUR_SERVER_ID" muted and deafened
+```
+
+## Reference Guide
+
+### Events
+
+| Event | Description | Event Values |
+|-------|-------------|--------------|
+| `on oauth request received` | Triggered when a user completes the OAuth2 flow | `oauth user`, `oauth access token`, `oauth refresh token`, `oauth expires in` |
+| `on oauth token refresh` | Triggered when a token refresh is attempted | `oauth user`, `oauth access token`, `oauth refresh token`, `refresh failed` |
+
+### Expressions
+
+| Expression | Return Type | Description |
+|------------|-------------|-------------|
+| `oauth user` | OAuthUser | The authenticated Discord user in OAuth events |
+| `oauth access token` | String | The access token provided by Discord |
+| `oauth refresh token` | String | The refresh token for renewing access |
+| `oauth expires in` | Timespan | How long until the access token expires |
+| `oauth url of client %string%` | String | Get the authorization URL for a client |
+| `guilds of %oauthuser%` | Guild | Get mutual guilds for the authenticated user |
+| `email of %oauthuser%` | String | Get the email address of the authenticated user |
+| `premium type of %oauthuser%` | String | Get the premium status of the authenticated user |
+
+### Effects
+
+| Effect | Description |
+|--------|-------------|
+| `register oauth client named %string% with id %string% with secret %string% with scopes %strings% using [the] [bot] %bot%` | Register an OAuth client with DiSky |
+| `refresh oauth token %string% for %user% with client %string%` | Refresh an OAuth token using the refresh token |
+| `make oauth user join server with id %string% [with nickname %string%] [with roles %strings%] [(muted\|deafened\|muted and deafened)]` | Make an authenticated user join a server via OAuth |
+
+### Conditions
+
+| Condition | Description |
+|-----------|-------------|
+| `refresh failed` | Check if a token refresh attempt failed (use in `on oauth token refresh`) |
+
+## OAuth Scopes Reference
+
+Different scopes provide access to different user data:
+
+| Scope | Access Provided |
+|-------|----------------|
+| `identify` | Basic user information (username, avatar, discriminator) |
+| `email` | User's email address |
+| `guilds` | List of guilds the user is in |
+| `guilds.join` | Ability to join users to guilds |
+| `connections` | User's connected accounts (Steam, YouTube, etc.) |
+
+<Aside type="tip">
+Always request the minimum scopes necessary for your application. Users are more likely to authorize when they see you're only requesting what you need.
+</Aside>
+
+## Security Best Practices
+
+1. **Protect Client Secrets**: Never expose your client secret in client-side code or public repositories
+2. **Validate Tokens**: Always check if tokens exist and are valid before using them
+3. **Secure Storage**: Store tokens securely and consider encrypting sensitive data
+4. **Clear Old Tokens**: Delete tokens when users revoke access or after extended periods of inactivity
+5. **HTTPS Only**: Use HTTPS for your redirect URL in production environments
+6. **Rate Limiting**: Implement rate limiting to prevent abuse of your OAuth flow
+
+## Error Handling
+
+Always implement comprehensive error handling:
+
+```applescript
+# Example with error handling
+on oauth request received:
+    # Verify we received valid data
+    if oauth user is not set:
+        send "Failed to get user data!" to console
+        stop
+
+    if oauth access token is not set:
+        send "Failed to get access token!" to console
+        stop
+
+    # Proceed with normal flow
+    set {TOKENS::%discord id of oauth user%::ACCESS} to oauth access token
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<Aside type="note">
+**Server not accessible**: Ensure your server URL is publicly accessible. If hosting locally, you'll need port forwarding or a service like ngrok.
+</Aside>
+
+**Redirect URI mismatch**
+- The redirect URI in your Discord application must **exactly match** the `server-url` in your config
+- Include the port number if you're using a non-standard port
+
+**Scopes not working**
+- Verify you've requested the necessary scopes when registering the client
+- Some data requires specific scopes (e.g., email requires the `email` scope)
+
+**Token refresh failures**
+- Refresh tokens can expire if not used for extended periods
+- Users may have revoked access to your application
+- Always handle refresh failures gracefully and prompt users to re-authorize
+
+### Debug Mode
+
+Enable debug mode in the config for detailed logging:
+
+```yaml
+debug: true
+```
+
+This will log all OAuth requests, token operations, and errors to help diagnose issues.
+
+## Advanced Example
+
+Here's a complete implementation with error handling and token management:
+
+```applescript
+# Register OAuth client on bot ready
+on ready:
+    register oauth client named "main" with id "YOUR_CLIENT_ID" with secret "YOUR_CLIENT_SECRET" with scopes "identify", "email", "guilds", "guilds.join" using event-bot
+
+# OAuth authorization command
+slash command authorize:
+    bot: disky
+    description: "Link your Discord account"
+
+    trigger:
+        # Check if already authorized
+        if {TOKENS::%discord id of event-user%::ACCESS} is set:
+            reply with "You're already authorized! Use `/refresh_auth` to refresh your token."
+            stop
+
+        # Create authorization link
+        set {_url} to oauth url of client "main"
+        set {_btn} to a new button:
+            url: {_url}
+            label: "Click to Authorize"
+            style: link
+            emote: reaction "🔐"
+
+        reply with hidden rich "Click the button below to authorize:" with components {_btn} and store it in {_msg}
+        set {OAUTH::%discord id of event-user%::MESSAGE} to {_msg}
+        set {OAUTH::%discord id of event-user%::TIME} to now
+
+# Handle successful authorization
+on oauth request received:
+    set {_msg} to {OAUTH::%discord id of oauth user%::MESSAGE}
+    set {_time} to {OAUTH::%discord id of oauth user%::TIME}
+
+    # Store tokens
+    set {TOKENS::%discord id of oauth user%::ACCESS} to oauth access token
+    set {TOKENS::%discord id of oauth user%::REFRESH} to oauth refresh token
+    set {TOKENS::%discord id of oauth user%::EXPIRE} to oauth expires in
+
+    # Create success message
+    make embed:
+        set title of embed to "✅ Authorization Successful"
+        set description of embed to "Your account has been linked successfully!"
+        add inline field named "Username" with value "%oauth user%" to embed
+        add inline field named "Email" with value "||%email of oauth user%||" to embed
+        add inline field named "Guilds" with value "%size of guilds of oauth user% servers" to embed
+        set color of embed to green
+        set footer of embed to "Authorized in %difference between now and {_time}%"
+
+    edit {_msg} to show last embed
+
+# Refresh command
+slash command refresh_auth:
+    bot: disky
+    description: "Refresh your authorization token"
+
+    trigger:
+        if {TOKENS::%discord id of event-user%::REFRESH} is not set:
+            reply with "You haven't authorized yet! Use `/authorize` first."
+            stop
+
+        reply with "Refreshing your authorization..." and store it in {_msg}
+        set {REFRESH::%discord id of event-user%::MESSAGE} to {_msg}
+
+        set {_refresh} to {TOKENS::%discord id of event-user%::REFRESH}
+        refresh oauth token {_refresh} for event-user with client "main"
+
+# Handle token refresh
+on oauth token refresh:
+    set {_msg} to {REFRESH::%discord id of event-user%::MESSAGE}
+
+    if refresh failed:
+        make embed:
+            set title of embed to "❌ Refresh Failed"
+            set description of embed to "Your authorization has expired. Please use `/authorize` to re-authorize."
+            set color of embed to red
+        edit {_msg} to show last embed
+        stop
+
+    # Update stored tokens
+    set {TOKENS::%discord id of event-user%::ACCESS} to oauth access token
+    set {TOKENS::%discord id of event-user%::REFRESH} to oauth refresh token
+    set {TOKENS::%discord id of event-user%::EXPIRE} to oauth expires in
+
+    make embed:
+        set title of embed to "✅ Token Refreshed"
+        set description of embed to "Your authorization has been refreshed successfully!"
+        set color of embed to green
+    edit {_msg} to show last embed
+```
+
+## Next Steps
+
+<Aside>
+Continue learning about DiSky modules and features:
+</Aside>
+
+- [Getting Started](/guides/getting-started) - Learn the basics of DiSky
+- [Slash Commands](/guides/slashcommands) - Create interactive commands
+- [Components](/messages/components) - Build interactive UIs
+- [Other Modules](/modules/lavaplayer) - Explore more premium modules
+
+## Support
+
+Need help with DiSkyOAuth? Get support:
+
+- [DiSky Discord Server](https://discord.gg/whMrSaYZQV)
+- [Patreon Page](https://www.patreon.com/itsthesky)
+- [GitHub Repository](https://github.com/DiSkyOrg/DiSky)

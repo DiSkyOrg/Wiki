@@ -1,0 +1,197 @@
+---
+title: Modules
+description: Extend DiSky with powerful modules for music, OAuth, webhooks, and more
+---
+
+import { Card, CardGrid, Badge, Aside, Steps } from '@astrojs/starlight/components';
+
+Modules are optional extensions that add new features to DiSky by integrating additional Discord libraries and capabilities.
+
+<Aside type="caution" title="Beta Feature">
+Modules are currently in beta. We appreciate feedback from both users and developers!
+</Aside>
+
+## What are Modules?
+
+While DiSky is built on the JDA library, some Discord features require additional libraries. **Modules** are JAR files that extend DiSky's functionality by:
+
+- Adding syntax for features beyond core JDA
+- Integrating third-party libraries (LavaPlayer, OAuth, etc.)
+- Enabling community contributions to DiSky
+- Providing specialized Discord features
+
+## Available Modules
+
+<CardGrid>
+  <Card title="ConsoleLogs" icon="terminal">
+    Send and receive Minecraft console logs directly in Discord channels for real-time server monitoring.
+
+    <Badge text="Free" variant="success" />
+    <Badge text="v1.1+" variant="note" />
+
+    [View Documentation →](/modules/consolelogs)
+  </Card>
+
+  <Card title="LavaPlayer" icon="seti:audio">
+    Complete music bot solution with YouTube, SoundCloud, and local file support. Includes queue management, autoplay, and repeat modes.
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="v1.0+" variant="note" />
+
+    [View Documentation →](/modules/lavaplayer)
+  </Card>
+
+  <Card title="DiSkyOAuth" icon="seti:lock">
+    Implement Discord OAuth2 authentication to access user data, manage server joins, and handle token refreshing.
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="v1.0+" variant="note" />
+
+    [View Documentation →](/modules/diskyoauth)
+  </Card>
+
+  <Card title="TranSkript" icon="document">
+    Generate beautiful HTML transcripts of Discord conversations with full message history and formatting.
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="v1.0+" variant="note" />
+
+    [View Documentation →](/modules/transkript)
+  </Card>
+
+  <Card title="ParseSK" icon="seti:javascript">
+    Parse and manipulate JSON data within your Discord bot scripts with advanced JSON handling.
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="v1.0+" variant="note" />
+
+    [View Documentation →](/modules/parsesk)
+  </Card>
+
+  <Card title="Webhooks" icon="rocket">
+    Advanced webhook management for sending messages through Discord webhooks with full customization.
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="v1.0+" variant="note" />
+
+    [View Documentation →](/modules/webhooks)
+  </Card>
+</CardGrid>
+
+## Installation
+
+<Steps>
+1. **Download Module**
+
+   Get the module JAR file from [DiSky Resources](https://resources.disky.me/resources?premium) (premium modules require Patreon)
+
+2. **Place in Modules Folder**
+
+   Copy the JAR to `/plugins/DiSky/modules/` (created automatically on first DiSky startup)
+
+3. **Restart Server**
+
+   Restart your Minecraft server to load the module
+
+4. **Verify Installation**
+
+   Use `/disky modules` command to check loaded modules
+</Steps>
+
+## Getting Premium Modules
+
+Most modules are **premium additions** available exclusively to [ItsTheSky's Patreon](https://www.patreon.com/itsthesky) supporters.
+
+### Benefits of Premium
+
+- Access to all 5+ premium modules
+- Regular updates and new features
+- Priority support
+- New modules as they're released
+- Minimum tier provides full access
+
+[Access Patreon Resources →](https://resources.disky.me/resources?premium)
+
+<Aside type="tip" title="Free Module Available">
+**ConsoleLogs** is completely free and available to all users. It's perfect for testing the modules system before subscribing!
+</Aside>
+
+## Add-ons
+
+Beyond core DiSky modules, there are specialized add-ons for advanced functionality:
+
+<CardGrid>
+  <Card title="SkImage" icon="seti:image">
+    Advanced image manipulation and generation with support for GIFs, graphics, effects, and text rendering.
+
+    <Badge text="Premium" variant="caution" />
+
+    [View Documentation →](/addons/skimage)
+  </Card>
+
+  <Card title="BooSK" icon="open-book">
+    Create and manage custom Minecraft written books with full formatting and page control.
+
+    <Badge text="Premium" variant="caution" />
+
+    [View Documentation →](/addons/boosk)
+  </Card>
+</CardGrid>
+
+## Version Compatibility
+
+<Aside type="note" title="Coming Soon">
+Version compatibility information will be added here to help you choose the right module versions for your DiSky installation.
+</Aside>
+
+### Planned Compatibility Matrix
+
+This section will include:
+- Module versions compatible with each DiSky version
+- Minimum Skript version requirements
+- JDA version dependencies
+- Known compatibility issues
+
+## Troubleshooting
+
+### Module Not Loading
+
+- Verify the JAR is in `/plugins/DiSky/modules/`
+- Check server logs for error messages
+- Ensure you're using a compatible DiSky version
+- Use `/disky modules` to list loaded modules
+
+### Missing Syntax
+
+- Restart server after installing the module
+- Check that the module loaded successfully
+- Verify module version compatibility
+- Update DiSky to the latest version
+
+### Premium Module Access
+
+- Confirm active Patreon subscription
+- Download from [DiSky Resources](https://resources.disky.me/resources?premium)
+- Join [DiSky Discord](https://disky.me/discord) for support
+
+## Next Steps
+
+<CardGrid>
+  <Card title="Install ConsoleLogs" icon="rocket">
+    Try the free ConsoleLogs module to get started with modules
+
+    [ConsoleLogs Guide →](/modules/consolelogs)
+  </Card>
+
+  <Card title="Explore Premium" icon="star">
+    See what premium modules can do for your bot
+
+    [View All Modules →](#available-modules)
+  </Card>
+
+  <Card title="Get Support" icon="discord">
+    Join our Discord community for help and updates
+
+    [Join Discord →](https://disky.me/discord)
+  </Card>
+</CardGrid>

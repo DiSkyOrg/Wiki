@@ -1,0 +1,165 @@
+---
+title: Add-ons
+description: Extend DiSky with powerful add-ons for image manipulation and book creation
+---
+
+import { Card, CardGrid, Badge, Aside } from '@astrojs/starlight/components';
+
+Add-ons are specialized extensions that provide advanced features beyond Discord integration, perfect for enhancing your bot's capabilities.
+
+## What are Add-ons?
+
+While **Modules** extend DiSky's Discord functionality, **Add-ons** are separate plugins that provide additional features for your Minecraft server and bots:
+
+- **Standalone Plugins**: Work alongside DiSky (not modules)
+- **Specialized Features**: Image manipulation, book creation, and more
+- **Full Integration**: Designed to work seamlessly with DiSky bots
+- **Premium Quality**: Professional-grade functionality
+
+<Aside type="caution" title="Premium Add-ons">
+All DiSky add-ons are premium extensions available exclusively to [ItsTheSky's Patreon](https://www.patreon.com/itsthesky) supporters.
+</Aside>
+
+## Available Add-ons
+
+<CardGrid>
+  <Card title="SkImage" icon="seti:image">
+    **Advanced Image Manipulation**
+
+    Create, edit, and manipulate images with professional-grade features:
+    - Load and save images in multiple formats (PNG, JPEG, GIF)
+    - Apply effects (blur, brightness, grayscale, sepia, pixelate, etc.)
+    - Create animated GIFs frame by frame
+    - Draw 2D graphics (shapes, lines, text)
+    - Advanced features: gradients, patterns, shadows, glows
+    - Text rendering with custom fonts and color codes
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="Plugin" variant="note" />
+
+    [View Documentation →](/addons/skimage)
+  </Card>
+
+  <Card title="BooSK" icon="open-book">
+    **Minecraft Book Creation**
+
+    Create and manage custom written books with full control:
+    - Create books programmatically
+    - Multi-page support with easy navigation
+    - MiniMessage formatting (colors, gradients, hover text)
+    - Dynamic content generation
+    - Perfect for guides, tutorials, and lore
+
+    <Badge text="Premium" variant="caution" />
+    <Badge text="Plugin" variant="note" />
+
+    [View Documentation →](/addons/boosk)
+  </Card>
+</CardGrid>
+
+## Installation
+
+Add-ons are installed like regular Minecraft plugins:
+
+1. **Download**: Get the add-on JAR from [DiSky Resources](https://resources.disky.me/resources?premium) (requires active Patreon subscription)
+
+2. **Install**: Place the JAR in your `/plugins/` folder (not `/plugins/DiSky/modules/`)
+
+3. **Restart**: Restart your Minecraft server
+
+4. **Verify**: Check console for successful load or use `/plugins` command
+
+<Aside type="note">
+Unlike modules, add-ons are **full plugins** that install in the main plugins folder, not the DiSky modules folder.
+</Aside>
+
+## Use Cases
+
+### SkImage Perfect For
+
+- **Custom Avatars**: Generate personalized server member cards
+- **Rank Images**: Create dynamic rank/level progression images
+- **Memes**: Build meme generators for your community
+- **Charts**: Generate graphs and statistics visualizations
+- **Banners**: Create announcement and event banners
+- **QR Codes**: Generate QR codes for server links
+
+### BooSK Perfect For
+
+- **Server Guides**: Create interactive tutorial books
+- **Lore Books**: Write custom storylines and quests
+- **Rule Books**: Provide formatted server rules
+- **Help Menus**: Build in-game documentation
+- **Achievement Books**: Track player accomplishments
+- **Event Information**: Distribute event details
+
+## Getting Premium Add-ons
+
+Both add-ons are available exclusively to [ItsTheSky's Patreon](https://www.patreon.com/itsthesky) supporters.
+
+### What You Get
+
+- Access to both premium add-ons
+- Regular updates and new features
+- Priority support from the developer
+- New add-ons as they're released
+- Full documentation and examples
+- Community access
+
+Minimum Patreon tier provides full access to all add-ons.
+
+[Access Patreon Resources →](https://resources.disky.me/resources?premium)
+
+## Comparison: Modules vs Add-ons
+
+| Feature | Modules | Add-ons |
+|---------|---------|---------|
+| **Installation** | `/plugins/DiSky/modules/` | `/plugins/` |
+| **Type** | DiSky extensions | Standalone plugins |
+| **Purpose** | Discord features | General Minecraft features |
+| **Requires DiSky** | Yes | No (but designed for it) |
+| **Examples** | LavaPlayer, OAuth, Webhooks | SkImage, BooSK |
+
+## Troubleshooting
+
+### Add-on Not Loading
+
+- Verify JAR is in `/plugins/` (not `/plugins/DiSky/modules/`)
+- Check server logs for error messages
+- Ensure compatible Minecraft/Skript version
+- Restart server after installation
+
+### Missing Syntax
+
+- Confirm add-on loaded successfully with `/plugins`
+- Check Skript version compatibility
+- Reload Skript scripts after installing add-on
+- Review documentation for correct syntax
+
+### Premium Access
+
+- Verify active Patreon subscription
+- Download from official [DiSky Resources](https://resources.disky.me/resources?premium)
+- Join [DiSky Discord](https://disky.me/discord) for support
+
+## Next Steps
+
+<CardGrid>
+  <Card title="Explore SkImage" icon="seti:image">
+    Learn about advanced image manipulation
+
+    [SkImage Documentation →](/addons/skimage)
+  </Card>
+
+  <Card title="Explore BooSK" icon="open-book">
+    Create custom Minecraft books
+
+    [BooSK Documentation →](/addons/boosk)
+  </Card>
+
+  <Card title="View Modules" icon="puzzle">
+    Check out DiSky modules for Discord features
+
+    [Modules Overview →](/modules)
+  </Card>
+</CardGrid>
