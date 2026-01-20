@@ -534,11 +534,65 @@ on slash command:
 
 </Steps>
 
+## Argument Naming Best Practices
+
+### Using Hyphens in Argument Names
+
+Since DiSky v4.27, you can use hyphens (`-`) in argument names for improved readability:
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "settings" with description "Manage settings"
+
+    # ✅ Good: Using hyphens for multi-word arguments (v4.27+)
+    add new boolean option named "auto-delete" with description "Enable auto-delete" to options of {_cmd}
+    add new integer option named "max-count" with description "Maximum count" to options of {_cmd}
+    add new string option named "user-name" with description "User name" to options of {_cmd}
+
+    # Also valid: Using underscores or camelCase
+    add new boolean option named "auto_delete" with description "Enable auto-delete" to options of {_cmd}
+    add new integer option named "maxCount" with description "Maximum count" to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+
+on slash command:
+    if event-string is "settings":
+        # Access arguments using the same name
+        set {_autoDelete} to argument "auto-delete" as boolean
+        set {_maxCount} to argument "max-count" as integer
+        set {_userName} to argument "user-name" as string
+
+        reply with "Settings updated!"
+```
+
+<Aside type="tip" title="Readability First">
+  Hyphens often make argument names more readable than underscores or camelCase, especially for users who see them in Discord's interface. Choose the style that works best for your bot's consistency.
+</Aside>
+
+**Example - Consistent Naming:**
+
+```applescript
+on ready:
+    set {_cmd} to new slash command named "user-profile" with description "View user profile"
+
+    set {_userOpt} to new user option named "target-user" with description "User to check"
+    add {_userOpt} to options of {_cmd}
+
+    set {_showOpt} to new boolean option named "show-badges" with description "Display badges"
+    add {_showOpt} to options of {_cmd}
+
+    set {_includeOpt} to new boolean option named "include-stats" with description "Include statistics"
+    add {_includeOpt} to options of {_cmd}
+
+    update {_cmd} globally in event-bot
+```
+
 ## Command Limits
 
 - **Command name**: 1-32 characters, alphanumeric and hyphens only
 - **Description**: 1-100 characters
 - **Options per command**: 25 maximum
+- **Option names**: 1-32 characters, alphanumeric, hyphens, and underscores (hyphens supported since v4.27)
 - **Choices per option**: 25 maximum
 - **Subcommands per group**: 25 maximum
 - **Groups per command**: 25 maximum

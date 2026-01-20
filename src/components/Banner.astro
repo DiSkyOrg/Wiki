@@ -1,0 +1,38 @@
+---
+// Ce composant override le Banner par défaut de Starlight
+// Il affiche une bannière sur toutes les pages
+const { banner } = Astro.locals.starlightRoute.entry.data;
+---
+
+<!-- Vous pouvez personnaliser le contenu de votre bannière ici -->
+<div class="sl-banner">
+	<p class="sl-banner-content">
+		<!-- Exemple de bannière personnalisée -->
+		🚀 This new wiki is in <strong>beta!</strong> Please double-check for any issue and report them on the <a href="https://github.com/DiSkyOrg/Wiki" target="_blank">GitHub</a>
+	</p>
+</div>
+
+<style>
+	.sl-banner {
+		background: linear-gradient(90deg, var(--sl-color-accent-low), var(--sl-color-accent));
+		border-bottom: 1px solid var(--sl-color-accent);
+		padding: 1rem;
+		text-align: center;
+		font-size: var(--sl-text-sm);
+	}
+
+	.sl-banner-content {
+		margin: 0;
+		color: var(--sl-color-white);
+	}
+
+	.sl-banner-content a {
+		color: var(--sl-color-white);
+		text-decoration: underline;
+		font-weight: 600;
+	}
+
+	.sl-banner-content a:hover {
+		text-decoration: none;
+	}
+</style>

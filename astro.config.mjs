@@ -5,16 +5,20 @@ import starlightThemeObsidian from 'starlight-theme-obsidian'
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://wiki.disky.me',
+	base: '/',
 	integrations: [
 		starlight({
 			plugins: [starlightThemeObsidian({
 				backlinks: false,
-				graph: {
-					enabled: true,
-				},
+				graph: false,
 			})],
 			title: 'DiSky',
 			description: 'Official documentation for DiSky - A powerful Skript addon for Discord bots',
+			components: {
+				// Override du composant Banner pour afficher une bannière sur toutes les pages
+				Banner: './src/components/Banner.astro',
+			},
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/DiSkyOrg/DiSky' },
 				{ icon: 'discord', label: 'Discord', href: 'https://disky.me/discord' }
@@ -161,9 +165,10 @@ export default defineConfig({
 					label: 'Migration Guides',
 					collapsed: true,
 					items: [
-						{ label: 'v4.24', slug: 'migration/v4-24' },
-						{ label: 'v4.25', slug: 'migration/v4-25' },
+						{ label: 'v4.27', slug: 'migration/v4-27' },
 						{ label: 'v4.26', slug: 'migration/v4-26' },
+						{ label: 'v4.25', slug: 'migration/v4-25' },
+						{ label: 'v4.24', slug: 'migration/v4-24' },
 					],
 				},
 			],
