@@ -107,6 +107,7 @@ export default defineConfig({
 					label: 'Migration Guides',
 					collapsed: true,
 					items: [
+						{ label: 'v4.27', slug: 'migration/v4-27' },
 						{ label: 'v4.26', slug: 'migration/v4-26' },
 					],
 				},

@@ -74,6 +74,14 @@ set {_post} to ... # Get post/thread
 # Get post name
 set {_name} to discord name of {_post}
 
+# Get the creator of the post (since v4.27)
+set {_owner} to thread owner of {_post}
+set {_owner} to owner of {_post}
+
+# Get message count (since v4.27)
+set {_count} to message count of {_post}
+set {_count} to thread message count of {_post}
+
 # Get members participating in the post
 set {_members::*} to members of {_post}
 
@@ -83,6 +91,10 @@ retrieve messages from {_post} and store them in {_messages::*}
 # Get tags on the post
 set {_tags::*} to tags of {_post}
 ```
+
+<Aside type="tip" title="New in v4.27">
+  You can now get the thread owner and message count directly! This is especially useful for displaying forum post statistics. See the [v4.27 Migration Guide](/migration/v4-27/) for more details.
+</Aside>
 
 ### Creating Posts
 
@@ -271,6 +283,50 @@ command /forumstats <forum>:
                 add field named "Posts by Tag" with value join {_tagList::*} with nl to fields of embed
 
             set embed color of embed to blue
+
+        reply with last embed
+```
+
+### Thread Information Display
+
+Show detailed information about a forum post using the new thread expressions:
+
+```applescript
+command /threadinfo:
+    trigger:
+        # Verify we're in a thread/forum post
+        if event-channel is not a thread channel:
+            reply with "❌ This command only works in forum posts or threads!"
+            stop
+
+        # Get thread information
+        set {_owner} to thread owner of event-channel
+        set {_msgCount} to message count of event-channel
+        set {_tags::*} to tags of event-channel
+        set {_members::*} to members of event-channel
+
+        # Build info embed
+        make embed:
+            set title of embed to "📊 Thread Information"
+            set description of embed to "Information about this thread"
+            set embed color of embed to blue
+
+            # Creator info
+            add field named "Created By" with value mention tag of {_owner} to fields of embed
+
+            # Message count
+            add field named "Messages" with value "%{_msgCount}%" to fields of embed
+
+            # Member count
+            add field named "Participants" with value "%size of {_members::*}% members" to fields of embed
+
+            # Tags if any
+            if {_tags::*} is set:
+                clear {_tagNames::*}
+                loop {_tags::*}:
+                    add discord name of loop-value to {_tagNames::*}
+                set {_tagList} to join {_tagNames::*} with ", "
+                add field named "Tags" with value {_tagList} to fields of embed
 
         reply with last embed
 ```
