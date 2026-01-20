@@ -9,7 +9,7 @@ import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 Anti-aliasing is a technique used to make the edges of shapes smoother:
 
-![anti-aliases.png](../images_files/anti-aliases.png)
+![anti-aliases.png](/images/skimage/anti-aliases.png)
 
 **It is disabled by default.** If you wish to enable it for both shapes & text, you can simply set the property to true, for instance:
 
@@ -44,21 +44,21 @@ Here's some example code when drawing a rectangle: (anti-aliasing is enabled)
     set stroke of {_graphics} to new stroke with width 5
     ```
 
-    ![stroke-1.png](../images_files/stroke-1.png)
+    ![stroke-1.png](/images/skimage/stroke-1.png)
   </TabItem>
   <TabItem label="Width of 5, Dashed">
     ```applescript
     set stroke of {_graphics} to new basic stroke with width 5 and miter limit 10 and dash array (2, 7) and dash phase 0
     ```
 
-    ![stroke-2.png](../images_files/stroke-2.png)
+    ![stroke-2.png](/images/skimage/stroke-2.png)
   </TabItem>
   <TabItem label="Width of 5, Dashed, Rounded">
     ```applescript
     set stroke of {_graphics} to new basic stroke with width 5 and cap "round" and join "round" and dash array (2, 7) and dash phase 0
     ```
 
-    ![stroke-3.png](../images_files/stroke-3.png)
+    ![stroke-3.png](/images/skimage/stroke-3.png)
   </TabItem>
 </Tabs>
 
