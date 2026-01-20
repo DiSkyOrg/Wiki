@@ -1,0 +1,223 @@
+---
+title: ConsoleLogs
+description: A free DiSky module that bridges your Minecraft server console with Discord, allowing you to read and send log messages.
+---
+
+import { Aside, Code, Steps } from '@astrojs/starlight/components';
+
+<Aside type="tip">
+ConsoleLogs is available for **everyone**! It is a completely free module that doesn't require any Patreon subscription.
+</Aside>
+
+## Overview
+
+ConsoleLogs is a powerful module that creates a bidirectional bridge between your Minecraft server console and Discord. Whether you want to monitor your server logs in real-time or send custom debug messages to your console, this module has you covered.
+
+### Features
+
+- **Console to Discord**: Read log messages from your Minecraft server console and send them straight to Discord channels
+- **Discord to Console**: Send custom log messages to your server console for debugging and monitoring
+- **Real-time Monitoring**: Keep track of server events, warnings, and errors without leaving Discord
+- **Flexible Integration**: Works seamlessly with DiSky's event system
+
+## Installation
+
+<Steps>
+
+1. **Download the module**
+
+   Download ConsoleLogs from one of these sources:
+   - [DiSky Resources](https://resources.disky.me/resources/9)
+   - [Backup Download](https://cdn.equipable.org/uploads/ConsoleLogs%20v1.1.1.jar)
+
+2. **Install the module**
+
+   Place the downloaded JAR file in your server's `plugins/DiSky/modules/` directory.
+
+3. **Restart your server**
+
+   Restart your Minecraft server to load the module.
+
+4. **Verify installation**
+
+   Check your server console for a message confirming ConsoleLogs has been loaded successfully.
+
+</Steps>
+
+## Usage Examples
+
+### Reading Console Logs
+
+To read and forward console messages to Discord, you can use DiSky's console event system:
+
+```applescript
+# Monitor all console messages and send them to a Discord channel
+on console message:
+    # Get the log message
+    set {_message} to event-string
+
+    # Send to a specific Discord channel
+    set {_channel} to text channel with id "YOUR_CHANNEL_ID" in bot "YOUR_BOT_NAME"
+    send {_message} to {_channel}
+```
+
+### Filtering Important Messages
+
+You can filter messages to only send specific types of logs (errors, warnings, etc.):
+
+```applescript
+# Only send error messages to Discord
+on console message:
+    set {_message} to event-string
+
+    # Check if message contains error keywords
+    if {_message} contains "ERROR" or "SEVERE" or "Exception":
+        set {_channel} to text channel with id "YOUR_ERROR_CHANNEL_ID" in bot "YOUR_BOT_NAME"
+        send "🚨 **Server Error:** %nl%%{_message}%" to {_channel}
+```
+
+### Sending Custom Debug Messages
+
+Send custom log messages to your server console for debugging:
+
+```applescript
+# Discord command to send a debug message to console
+discord command debug <text>:
+    prefixes: !
+    roles: Administrator
+    trigger:
+        # Send the message to console
+        send "Debug from %mention tag of event-user%: %arg-1%" to console
+
+        # Confirm to Discord
+        reply with "Debug message sent to console!"
+```
+
+### Advanced Monitoring System
+
+Create a comprehensive monitoring system with multiple channels:
+
+```applescript
+# Complete console monitoring system
+on console message:
+    set {_message} to event-string
+    set {_bot} to bot named "YOUR_BOT_NAME"
+
+    # Error channel
+    if {_message} contains "ERROR" or "SEVERE" or "Exception":
+        set {_channel} to text channel with id "ERROR_CHANNEL_ID" with {_bot}
+        make embed:
+            set title of embed to "❌ Server Error"
+            set description of embed to {_message}
+            set color of embed to red
+        send last embed to {_channel}
+        stop
+
+    # Warning channel
+    if {_message} contains "WARN" or "WARNING":
+        set {_channel} to text channel with id "WARNING_CHANNEL_ID" with {_bot}
+        make embed:
+            set title of embed to "⚠️ Server Warning"
+            set description of embed to {_message}
+            set color of embed to orange
+        send last embed to {_channel}
+        stop
+
+    # General logs channel
+    set {_channel} to text channel with id "LOGS_CHANNEL_ID" with {_bot}
+    send {_message} to {_channel}
+```
+
+## Use Cases
+
+### Server Administration
+
+Monitor your server health and catch issues before they become problems:
+
+- Track player joins/leaves
+- Monitor plugin errors
+- Catch performance warnings
+- Debug command issues
+
+### Development & Testing
+
+Use ConsoleLogs during development to streamline your workflow:
+
+```applescript
+# Send debug messages during development
+set {_data} to some value
+send "DEBUG: Variable value is %{_data}%" to console
+
+# This appears in both server console and Discord
+```
+
+### Security & Auditing
+
+Keep an audit trail of important server events:
+
+```applescript
+# Log important actions to console and Discord
+on player command:
+    if command contains "op" or "deop" or "gamemode":
+        send "AUDIT: %player% executed: /%command%" to console
+```
+
+## Troubleshooting
+
+<Aside type="note">
+If you're not seeing console messages in Discord, check these common issues:
+</Aside>
+
+### Messages Not Appearing
+
+- **Verify bot permissions**: Ensure your bot has permission to send messages in the target channel
+- **Check channel IDs**: Double-check that you're using the correct Discord channel IDs
+- **Confirm bot status**: Make sure your DiSky bot is online and connected
+
+### Too Many Messages
+
+If you're getting flooded with console messages:
+
+```applescript
+# Add rate limiting
+on console message:
+    # Only send every 5th message
+    add 1 to {console.counter}
+    if {console.counter} is greater than or equal to 5:
+        set {console.counter} to 0
+        # Send to Discord
+        set {_channel} to text channel with id "CHANNEL_ID" in bot "BOT_NAME"
+        send event-string to {_channel}
+```
+
+### Performance Concerns
+
+<Aside type="caution">
+Sending every console message to Discord can impact performance. Consider filtering messages or using batch sending for high-traffic servers.
+</Aside>
+
+## Best Practices
+
+1. **Filter Messages**: Don't forward every console message—focus on important events
+2. **Use Separate Channels**: Create different Discord channels for errors, warnings, and general logs
+3. **Rate Limiting**: Implement rate limiting to prevent spam
+4. **Format Messages**: Use embeds for better readability in Discord
+5. **Security**: Never expose sensitive information from console logs in public Discord channels
+
+## Next Steps
+
+<Aside>
+Ready to enhance your Discord bot further? Check out these related guides:
+</Aside>
+
+- [Getting Started with DiSky](/guides/getting-started) - Learn the basics of DiSky
+- [Events Guide](/guides/events) - Master DiSky's event system
+- [Messages Guide](/messages/introduction) - Learn about advanced message handling
+- [Other Modules](/modules/lavaplayer) - Explore more DiSky modules
+
+## Support
+
+Need help with ConsoleLogs? Join the DiSky community:
+
+- [DiSky Discord Server](https://discord.gg/whMrSaYZQV)
+- [GitHub Issues](https://github.com/DiSkyOrg/DiSky)

@@ -94,26 +94,58 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Modules',
+					collapsed: true,
+					items: [
+						{ label: 'Overview', slug: 'modules' },
+						{ label: 'ConsoleLogs', slug: 'modules/consolelogs' },
+						{ label: 'LavaPlayer', slug: 'modules/lavaplayer' },
+						{ label: 'DiSkyOAuth', slug: 'modules/diskyoauth' },
+						{ label: 'TranSkript', slug: 'modules/transkript' },
+						{ label: 'ParseSK', slug: 'modules/parsesk' },
+						{ label: 'Webhooks', slug: 'modules/webhooks' },
+					],
+				},
+				{
 					label: 'Add-ons',
 					collapsed: true,
 					items: [
+						{ label: 'Overview', slug: 'addons' },
 						{
 							label: 'SkImage',
 							collapsed: true,
 							items: [
+								{ label: 'Overview', slug: 'addons/skimage' },
 								{ label: 'Getting Started', slug: 'addons/skimage/getting-started' },
-								{ label: 'Working with Images', slug: 'addons/skimage/images' },
-								{ label: 'Image Effects', slug: 'addons/skimage/effects' },
 								{ label: 'GIFs', slug: 'addons/skimage/gifs' },
-								{ label: 'Graphics & Drawing', slug: 'addons/skimage/graphics' },
+								{
+									label: 'Images',
+									collapsed: true,
+									items: [
+										{ label: 'Image Manipulation', slug: 'addons/skimage/images/images' },
+										{ label: 'Image Effects', slug: 'addons/skimage/images/effects' },
+									],
+								},
+								{
+									label: 'Graphics (2D)',
+									collapsed: true,
+									items: [
+										{ label: 'Graphics Management', slug: 'addons/skimage/graphics/graphics' },
+										{ label: 'Customizations', slug: 'addons/skimage/graphics/customizations' },
+										{ label: 'Brushes', slug: 'addons/skimage/graphics/brushes' },
+										{ label: 'Shape Effects', slug: 'addons/skimage/graphics/shape-effects' },
+										{ label: 'Text Drawing', slug: 'addons/skimage/graphics/texts' },
+									],
+								},
 							],
 						},
 						{
 							label: 'BooSK',
 							collapsed: true,
 							items: [
+								{ label: 'Overview', slug: 'addons/boosk' },
 								{ label: 'Getting Started', slug: 'addons/boosk/getting-started' },
-								{ label: 'Creating Books', slug: 'addons/boosk/creating-books' },
+								{ label: 'Create a Book', slug: 'addons/boosk/create-a-book' },
 							],
 						},
 					],

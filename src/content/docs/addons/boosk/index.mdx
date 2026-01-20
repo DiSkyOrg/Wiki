@@ -1,0 +1,64 @@
+---
+title: BooSK
+description: A powerful Skript addon for advanced book manipulation with MiniMessage formatting support
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+**BooSK** is a premium Skript addon made for **book** manipulation, from 1.16.X to the latest version. It supports both legacy and **[MiniMessage formatting](https://docs.advntr.dev/minimessage/format.html)**, allowing you to create clickable links, gradients, hover effects, and more.
+
+<Aside type="tip">
+  **Premium Add-on**: BooSK is only available for **Patreons** of [ItsTheSky](https://www.patreon.com/itsthesky).
+
+  [Access Patreon-only Resources](https://resources.disky.me/resources/4)
+</Aside>
+
+## Features
+
+- **MiniMessage Support**: Create beautiful gradients, hover effects, and clickable elements
+- **Modern API**: Clean and intuitive syntax for book creation and manipulation
+- **Version Compatibility**: Works from Minecraft 1.16.X to the latest version
+- **Legacy Support**: Maintains compatibility with traditional book formatting
+
+## Requirements
+
+- Skript `v2.10.X` or higher
+- Paper `1.16.X` or higher (Spigot will soon be deprecated)
+
+<Aside type="caution">
+  We do not support CraftBukkit or any other fork that are not based on Paper! Spigot support will be dropped in the near future.
+</Aside>
+
+## What You Can Do
+
+With BooSK, you can:
+
+- Create books with custom titles and authors
+- Add pages with MiniMessage formatting
+- Include clickable links and commands
+- Add hover effects to text
+- Apply gradients and color schemes
+- Open books directly to players
+- Convert books to items for inventory management
+
+## Quick Example
+
+```applescript
+# Create a book with MiniMessage formatting
+set {_book} to a new book with title "<gradient:red:blue>My Book" and author "ItsTheSky"
+
+# Add a page with clickable link
+add "Click <click:suggest_command:/say Hello!>here</click>!" to pages of {_book}
+
+# Open to player
+open boosk {_book} to player
+```
+
+## Next Steps
+
+<Aside type="note">
+  Ready to get started with BooSK? Check out the guides below:
+</Aside>
+
+- [Getting Started](./getting-started) - Installation and setup instructions
+- [Create a Book](./create-a-book) - Learn how to create and customize books

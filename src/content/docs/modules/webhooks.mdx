@@ -1,0 +1,394 @@
+---
+title: Webhooks Module
+description: A deprecated DiSky module for webhook functionality. Webhooks are now built into DiSky core starting from version 4.15.
+---
+
+import { Aside, Code, Steps } from '@astrojs/starlight/components';
+
+<Aside type="danger">
+**This module is deprecated!** This module is no longer maintained and **no support will be provided** for it. Webhooks are now part of **DiSky itself** starting from version 4.15. Please use the [new webhook documentation](/messages/webhooks) instead.
+</Aside>
+
+## Migration Notice
+
+If you're currently using the Webhooks module, you should:
+
+1. **Update DiSky** to version 4.15 or higher
+2. **Remove the Webhooks module** from your `plugins/DiSky/modules/` folder
+3. **Update your code** to use the new built-in webhook syntax
+4. **Review the new documentation** at [DiSky Webhooks Guide](/messages/webhooks)
+
+<Aside type="tip">
+The new built-in webhook system is more powerful, better maintained, and fully integrated with DiSky's latest features!
+</Aside>
+
+## Why This Module Was Deprecated
+
+The Webhooks module was created when DiSky didn't have native webhook support. Since DiSky 4.15, webhook functionality has been integrated directly into the core plugin, offering:
+
+- Better performance and stability
+- Full integration with DiSky's message builders
+- Active maintenance and updates
+- Consistent syntax with other DiSky features
+- Bug fixes and improvements
+
+## Historical Documentation
+
+<Aside type="caution">
+The following documentation is preserved for historical reference only. Do not use this module for new projects!
+</Aside>
+
+### What Were Webhooks?
+
+Webhooks allowed bots to send messages with custom names and avatars. They were designed to be anonymous—webhooks don't have tags or unique IDs like regular bot users. Webhooks were also the only way to send messages with multiple embeds at once.
+
+### Legacy Module Installation
+
+<Aside type="danger">
+**Do not install this module!** Use DiSky's built-in webhook support instead.
+</Aside>
+
+Download link (archived): [GitHub Releases](https://github.com/DiSkyOrg/Webhooks/releases)
+
+### Limitations of the Old Module
+
+The deprecated Webhooks module had several limitations:
+
+- No component support (buttons, select menus)
+- No interaction handling
+- Limited error handling
+- Not actively maintained
+- Incompatible with newer DiSky features
+
+## Legacy Syntax Reference
+
+This syntax is **deprecated** and should not be used:
+
+### Creating a Webhook (Old Method)
+
+```applescript
+# OLD - DO NOT USE
+on script load:
+    register webhook named "<name>" with url "<your webhook url here>"
+```
+
+### Sending Messages (Old Method)
+
+```applescript
+# OLD - DO NOT USE
+make a new webhook message:
+    set webhook name of builder to "Test"
+    set webhook avatar of builder to "https://example.com/avatar.png"
+    set webhook content of builder to "This is a test message"
+
+    make embed:
+        set title of embed to "Hey"
+        set embed color of embed to orange
+
+    set webhook embeds of builder to last embed
+    make client "<name>" send builder and store it in {_msgId}
+```
+
+## Migrating to Built-in Webhooks
+
+Here's how to migrate from the old module to DiSky's built-in webhooks:
+
+### Step 1: Update DiSky
+
+Ensure you have DiSky 4.15 or higher installed.
+
+### Step 2: Remove Old Module
+
+Delete the Webhooks module JAR from `plugins/DiSky/modules/`.
+
+### Step 3: Update Your Code
+
+<Aside>
+The new syntax is cleaner and more powerful. Here's a comparison:
+</Aside>
+
+**Old Module Syntax:**
+```applescript
+# OLD - DO NOT USE
+on script load:
+    register webhook named "test" with url "https://discord.com/api/webhooks/..."
+
+make a new webhook message:
+    set webhook name of builder to "Bot Name"
+    set webhook avatar of builder to "https://example.com/avatar.png"
+    set webhook content of builder to "Hello!"
+    make client "test" send builder
+```
+
+**New Built-in Syntax:**
+```applescript
+# NEW - Use this instead
+set {_webhook} to webhook with url "https://discord.com/api/webhooks/..."
+
+make webhook message:
+    set webhook name to "Bot Name"
+    set webhook avatar url to "https://example.com/avatar.png"
+    set content to "Hello!"
+
+send last webhook message to {_webhook}
+```
+
+### Common Migration Examples
+
+#### Sending Simple Messages
+
+**Old:**
+```applescript
+make a new webhook message:
+    set webhook name of builder to "Announcer"
+    set webhook content of builder to "Server will restart in 5 minutes!"
+    make client "announcer" send builder
+```
+
+**New:**
+```applescript
+set {_webhook} to webhook with url "YOUR_WEBHOOK_URL"
+
+make webhook message:
+    set webhook name to "Announcer"
+    set content to "Server will restart in 5 minutes!"
+
+send last webhook message to {_webhook}
+```
+
+#### Sending with Embeds
+
+**Old:**
+```applescript
+make a new webhook message:
+    set webhook name of builder to "Status Bot"
+
+    make embed:
+        set title of embed to "Server Status"
+        set description of embed to "All systems operational"
+        set color of embed to green
+
+    set webhook embeds of builder to last embed
+    make client "status" send builder
+```
+
+**New:**
+```applescript
+set {_webhook} to webhook with url "YOUR_WEBHOOK_URL"
+
+make embed:
+    set title of embed to "Server Status"
+    set description of embed to "All systems operational"
+    set color of embed to green
+
+make webhook message:
+    set webhook name to "Status Bot"
+    add last embed to embeds
+
+send last webhook message to {_webhook}
+```
+
+#### Multiple Embeds
+
+**Old:**
+```applescript
+make embed:
+    set title of embed to "Embed 1"
+set {_embed1} to last embed
+
+make embed:
+    set title of embed to "Embed 2"
+set {_embed2} to last embed
+
+make a new webhook message:
+    set webhook embeds of builder to {_embed1} and {_embed2}
+    make client "test" send builder
+```
+
+**New:**
+```applescript
+set {_webhook} to webhook with url "YOUR_WEBHOOK_URL"
+
+make embed:
+    set title of embed to "Embed 1"
+set {_embed1} to last embed
+
+make embed:
+    set title of embed to "Embed 2"
+set {_embed2} to last embed
+
+make webhook message:
+    add {_embed1} to embeds
+    add {_embed2} to embeds
+
+send last webhook message to {_webhook}
+```
+
+## Creating Discord Webhooks
+
+If you need to create a webhook URL in Discord:
+
+<Steps>
+
+1. **Open Channel Settings**
+
+   Right-click on the channel and select "Edit Channel"
+
+2. **Navigate to Integrations**
+
+   Go to the "Integrations" tab in the channel settings
+
+3. **Access Webhooks**
+
+   Click on "Webhooks" to view and manage webhooks
+
+4. **Create New Webhook**
+
+   Click "New Webhook" to create a new webhook
+
+5. **Configure and Copy URL**
+
+   Set a name and avatar (optional), then click "Copy Webhook URL"
+
+</Steps>
+
+![Channel Settings Panel](../images/image%20(6).png)
+*A channel's settings panel showing the Integrations option*
+
+![Webhooks Panel](../images/image%20(1)%20(1).png)
+*The webhooks sub-panel where you can create and manage webhooks*
+
+## Feature Comparison
+
+| Feature | Old Module | Built-in (DiSky 4.15+) |
+|---------|-----------|----------------------|
+| Send messages | ✅ | ✅ |
+| Custom name/avatar | ✅ | ✅ |
+| Multiple embeds | ✅ | ✅ |
+| Attachments/files | ✅ | ✅ |
+| Components (buttons) | ❌ | ✅ |
+| Edit webhook messages | ❌ | ✅ |
+| Delete webhook messages | ❌ | ✅ |
+| Get webhook info | ❌ | ✅ |
+| Active maintenance | ❌ | ✅ |
+| Error handling | Limited | Comprehensive |
+
+## Why Use Built-in Webhooks?
+
+<Aside type="tip">
+DiSky's built-in webhook support offers significant advantages over the old module:
+</Aside>
+
+1. **Better Integration**: Seamlessly works with DiSky's message builders
+2. **More Features**: Support for components, editing, and deletion
+3. **Active Development**: Regular updates and bug fixes
+4. **Better Performance**: Optimized code and resource usage
+5. **Unified Syntax**: Consistent with other DiSky features
+6. **Full Documentation**: Comprehensive guides and examples
+
+## Get Started with New Webhooks
+
+Ready to use the new webhook system? Check out the official documentation:
+
+<Aside>
+**New Webhook Documentation**: [DiSky Webhooks Guide](/messages/webhooks)
+</Aside>
+
+The new documentation includes:
+
+- Complete setup instructions
+- Practical examples for all use cases
+- Best practices and tips
+- Troubleshooting guide
+- Advanced features like editing and components
+
+## Frequently Asked Questions
+
+### Do I need to keep the old module installed?
+
+**No!** Once you've migrated your code to use DiSky's built-in webhooks, you should remove the old Webhooks module from your server.
+
+### Will my existing webhooks still work?
+
+Yes! Discord webhooks themselves don't change. You just need to update the Skript code that sends messages to them.
+
+### Can I use both the old module and new syntax?
+
+While technically possible, it's **not recommended**. You should fully migrate to the new built-in system for consistency and maintainability.
+
+### What if I need help migrating?
+
+Join the [DiSky Discord Server](https://discord.gg/whMrSaYZQV) for migration assistance and support.
+
+### Are there any breaking changes?
+
+The syntax is different, but the core concepts remain the same. The new system is more intuitive and powerful.
+
+## Example Migration Checklist
+
+Use this checklist to ensure a smooth migration:
+
+- [ ] Update DiSky to version 4.15 or higher
+- [ ] Review the [new webhook documentation](/messages/webhooks)
+- [ ] Backup your current scripts
+- [ ] Remove webhook registration code (`register webhook named...`)
+- [ ] Update webhook message creation to use new syntax
+- [ ] Replace `make client "name" send builder` with new send syntax
+- [ ] Test all webhook functionality
+- [ ] Remove the old Webhooks module JAR
+- [ ] Restart your server
+- [ ] Verify everything works as expected
+
+## Troubleshooting Migration
+
+### Webhook Not Found Errors
+
+If you get errors about webhooks not being found:
+- Remove the old `register webhook` code
+- Use the webhook URL directly in the new syntax
+
+### Messages Not Sending
+
+Ensure you're using the new syntax correctly:
+```applescript
+# Correct new syntax
+set {_webhook} to webhook with url "YOUR_URL"
+make webhook message:
+    set content to "Test"
+send last webhook message to {_webhook}
+```
+
+### Multiple Embeds Not Working
+
+The new syntax for adding multiple embeds:
+```applescript
+make webhook message:
+    add {_embed1} to embeds
+    add {_embed2} to embeds
+    add {_embed3} to embeds
+```
+
+## Next Steps
+
+<Aside>
+Now that you understand the deprecation of this module, take these next steps:
+</Aside>
+
+- **[Read the New Documentation](/messages/webhooks)** - Learn the modern webhook syntax
+- **[DiSky Messages Guide](/messages/introduction)** - Explore message creation features
+- **[DiSky Components](/messages/components)** - Add buttons and menus to webhook messages
+- **[Other Modules](/modules/lavaplayer)** - Discover active DiSky modules
+
+## Support
+
+For help with migration or general webhook support:
+
+- [DiSky Discord Server](https://discord.gg/whMrSaYZQV) - Get help from the community
+- [New Webhooks Documentation](/messages/webhooks) - Official guide for built-in webhooks
+- [GitHub Issues](https://github.com/DiSkyOrg/DiSky) - Report bugs or issues
+
+---
+
+<Aside type="danger">
+**Remember**: This module is deprecated. Always use DiSky's built-in webhook support for new projects and migrate existing code as soon as possible.
+</Aside>

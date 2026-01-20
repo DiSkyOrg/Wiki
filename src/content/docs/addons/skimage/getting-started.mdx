@@ -1,0 +1,67 @@
+---
+title: Getting Started with SkImage
+description: Learn how to download, install, and start using SkImage for image manipulation in your Skript projects
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside type="tip">
+  **How to download?**
+  SkImage is only available for **Patreons** of [ItsTheSky](https://www.patreon.com/itsthesky).
+
+  [Access Patreon-only Resources](https://resources.disky.me/resources/2)
+</Aside>
+
+SkImage is a powerful Skript addon, not directly related to DiSky, used to make image manipulation easier. You can draw shapes, images, apply filters, and all of that optimized for Skript.
+
+## Installation
+
+In order to use SkImage, you'll have to download it from the **Patreon Resources**, and then put the `.jar` file in your `plugins` folder.
+
+<Aside type="danger">
+  SkImage is not compatible with Skript 2.9 or older. You must use Skript 2.10 or newer.
+</Aside>
+
+## Requirements
+
+- Skript `v2.10.X` or higher
+- Paper `1.16.X` or higher
+
+## Installation Steps
+
+1. Download SkImage from the Patreon resources page
+2. Place the `.jar` file in your server's `plugins` folder
+3. Restart your server
+4. Start creating and manipulating images!
+
+## Quick Start
+
+Here's a simple example to get you started:
+
+```applescript
+# Create a new image
+set {_image} to new image with width 200 and height 200
+
+# Create graphics object to draw on
+set {_graphics} to new graphics from {_image}
+set anti-aliasing of {_graphics} to true
+
+# Draw a red rectangle
+set {_rect} to new rectangle with width 150 and height 150 and color red
+draw filled {_rect} on {_graphics} at 25, 25
+
+# Clean up and save
+dispose {_graphics}
+save image {_image} to "plugins/my-first-image.png"
+```
+
+## Next Steps
+
+Now that you have SkImage installed, explore the different features:
+
+- [Image Management](./images/images) - Learn how to load, create, and manipulate images
+- [Image Effects](./images/effects) - Apply visual effects to your images
+- [GIFs](./gifs) - Create animated GIFs
+- [Graphics Management](./graphics/graphics) - Start drawing shapes and graphics
+- [Brushes](./graphics/brushes) - Use gradients, patterns, and textures
+- [Text Drawing](./graphics/texts) - Render text with custom fonts

@@ -1,0 +1,109 @@
+---
+title: SkImage
+description: A powerful Skript addon for image manipulation, drawing, and effects
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+**SkImage** is a premium Skript addon, not directly related to DiSky, designed to make image manipulation easier. You can draw shapes, images, apply filters, create GIFs, and more - all optimized for Skript.
+
+<Aside type="tip">
+  **Premium Add-on**: SkImage is only available for **Patreons** of [ItsTheSky](https://www.patreon.com/itsthesky).
+
+  [Access Patreon-only Resources](https://resources.disky.me/resources/2)
+</Aside>
+
+## Features
+
+### Image Manipulation
+- Load images from files or URLs
+- Create images from scratch
+- Resize, crop, and round images
+- Apply various effects (blur, brightness, contrast, etc.)
+- Save images in multiple formats
+
+### Graphics Drawing
+- Draw shapes (rectangles, circles, polygons, etc.)
+- Custom brushes (gradients, patterns, textures)
+- Text rendering with custom fonts
+- Advanced stroke and anti-aliasing options
+- Shape effects (glow, shadow, bevel)
+
+### GIF Creation
+- Create animated GIFs
+- Add frames dynamically
+- Control animation speed and looping
+
+### Performance
+- Optimized for Skript
+- Async support with DiSky integration
+- Memory-efficient graphics management
+
+## Requirements
+
+- Skript `v2.10.X` or higher
+- Paper `1.16.X` or higher
+
+<Aside type="danger">
+  SkImage is not compatible with Skript 2.9 or older. You must use Skript 2.10 or newer.
+</Aside>
+
+## Quick Example
+
+```applescript
+# Create an image and draw on it
+set {_image} to new image with width 500 and height 300
+set {_graphics} to new graphics from {_image}
+set anti-aliasing of {_graphics} to true
+
+# Draw a rectangle with gradient
+set {_gradient} to new horizontal gradient brush with colors red, yellow, blue
+set {_rect} to new rectangle with width 400 and height 200 and brush {_gradient}
+draw filled {_rect} on {_graphics} at 50, 50
+
+# Add text
+set {_font} to new font named "Arial" with style "bold" and size 36
+set {_text} to new text with content "$fHello World!" with font {_font}
+draw {_text} on {_graphics} at 250, 150
+
+# Save the image
+dispose {_graphics}
+save image {_image} to "plugins/example.png"
+```
+
+## What You Can Do
+
+With SkImage, you can:
+
+- **Image Processing**: Load, manipulate, and save images
+- **Graphics Drawing**: Create complex graphics with shapes, text, and effects
+- **GIF Creation**: Build animated GIFs frame by frame
+- **Effects**: Apply blur, brightness, contrast, sepia, and more
+- **Custom Brushes**: Use gradients, patterns, and textures for fills
+- **Text Rendering**: Draw formatted text with custom fonts
+- **Shape Effects**: Add glow, shadows, and bevels to objects
+
+## Documentation Structure
+
+### Images
+- [Getting Started](./getting-started) - Installation and basic setup
+- [Image Management](./images/images) - Loading, creating, and manipulating images
+- [Image Effects](./images/effects) - Applying visual effects to images
+- [GIFs](./gifs) - Creating animated GIFs
+
+### Graphics
+- [Graphics Management](./graphics/graphics) - Working with 2D graphics
+- [Customizations](./graphics/customizations) - Anti-aliasing, strokes, and composites
+- [Brushes](./graphics/brushes) - Using gradients, patterns, and textures
+- [Shape Effects](./graphics/shape-effects) - Glow, shadow, and bevel effects
+- [Text Drawing](./graphics/texts) - Rendering text with custom fonts
+
+## Next Steps
+
+<Aside type="note">
+  Ready to get started with SkImage? Check out the guides below:
+</Aside>
+
+- [Getting Started](./getting-started) - Installation and setup instructions
+- [Image Management](./images/images) - Learn how to load and manipulate images
+- [Graphics Management](./graphics/graphics) - Start drawing shapes and graphics

@@ -1,0 +1,413 @@
+---
+title: LavaPlayer
+description: A premium DiSky module that enables music loading and playback functionality for Discord bots, supporting YouTube, SoundCloud, and local files.
+---
+
+import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="caution">
+LavaPlayer is only available for **Patreon supporters** of [ItsTheSky](https://www.patreon.com/itsthesky). Access the module through the [Patreon-only Resources](https://resources.disky.me/resources/1) page.
+</Aside>
+
+LavaPlayer is a powerful DiSky module that allows developers to implement music loading and playing functionality in their Discord bots. It supports multiple audio sources including YouTube, SoundCloud, and local files.
+
+## Installation
+
+<Steps>
+
+1. **Get Patreon Access**
+
+   Subscribe to [ItsTheSky's Patreon](https://patreon.com/itsthesky) to access premium modules.
+
+2. **Download LavaPlayer**
+
+   Download the latest version from the [Patreon resources page](https://resources.disky.me/resources/1).
+
+3. **Install the Module**
+
+   Place the downloaded JAR file in your server's `plugins/DiSky/modules/` directory.
+
+4. **Restart Your Server**
+
+   Restart your server to load the module.
+
+5. **Verify Installation**
+
+   Check your console for confirmation that LavaPlayer has been loaded successfully.
+
+</Steps>
+
+## Basic Operation
+
+Before diving into the code, it's important to understand how LavaPlayer manages tracks and audio players.
+
+### Audio Tracks
+
+An **audio track** represents a playable audio file. It contains metadata such as title, author, and identifier (YouTube/SoundCloud ID or local file path).
+
+You can load tracks in three different ways:
+
+#### Loading from Local Files
+
+LavaPlayer supports various audio formats including MP3, WAV, and FLAC. For a complete list, see the [LavaPlayer documentation](https://github.com/sedmelluq/lavaplayer#supported-formats).
+
+```applescript
+# Load a track from a local file
+load track from file "plugins/music/mytrack.mp3" and store it in {_track}
+
+# {_track} now holds your local track!
+```
+
+#### Loading from External URLs
+
+Load tracks directly from YouTube or SoundCloud using specific URLs. The URL must start with `https://youtube` or `https://soundcloud`.
+
+LavaPlayer uses a **section-based approach** to handle different loading outcomes:
+
+```applescript
+load items from url "https://www.youtube.com/watch?v=nQnZlD4dgPE":
+
+    # Called when loading a single track
+    on single load:
+        set {_track} to loaded track
+
+    # Called when loading a playlist
+    # Provides both the playlist's tracks and name
+    on playlist load:
+        set {_track} to first element of tracks of loaded playlist
+
+    # Called if any failure occurs (no connection, 404 errors, etc.)
+    on load failure:
+        reply with "An exception occurred: %the exception%"
+```
+
+<Aside type="note">
+Variables defined in sub-sections can be used **outside** the sections! In the example above, you can continue using `{_track}` after the load section completes.
+</Aside>
+
+#### Searching YouTube
+
+Search for tracks using keywords. This method typically returns multiple results:
+
+```applescript
+search items from input "KDA more":
+
+    # Should not be called for searches (searches return multiple results)
+    on single load:
+        reply with "Oh no, something went wrong..."
+
+    # The playlist contains all tracks matching the search
+    # Here we'll use the first track from the results
+    on playlist load:
+        set {_track} to first element of tracks of loaded playlist
+
+    # Called if loading fails
+    on load failure:
+        reply with "An exception occurred: %the exception%"
+
+    # Called when no videos match the search query
+    on no matches:
+        reply with "Nothing found for your query!"
+```
+
+### Guild Players
+
+LavaPlayer includes a built-in guild player system that simplifies audio management.
+
+Each **guild and bot combination** has its own player. If you have two bots in one guild, you'll have two separate players. Players store information like the current track, volume, queue, and more.
+
+<Aside type="caution">
+Players are created on-demand when you first play a track. You **cannot modify player properties** (like volume) before playing at least one track!
+</Aside>
+
+#### Managing the Queue
+
+Access and modify the guild's audio queue:
+
+```applescript
+# Get the current queue
+set {_queue::*} to queue of event-guild
+
+# Specify a specific bot if needed
+set {_queue::*} to queue of event-guild with bot "name"
+```
+
+#### Managing Volume
+
+Control the playback volume:
+
+```applescript
+# Get the currently playing track
+set {_current} to playing track of event-guild
+
+# Set volume (must be between 0 and 1000)
+set volume of event-guild to 50
+```
+
+<Aside type="note">
+Volume must be between 0 and 1000 (inclusive). Values outside this range will be automatically adjusted to the nearest valid value.
+</Aside>
+
+#### Player Actions
+
+| Action | Syntax Example |
+|--------|----------------|
+| Play a track (doesn't remove from queue automatically) | `play {_track} in event-guild` |
+| Skip to next track (removes and returns from queue) | `skip in event-guild and store it in {_track}` |
+| Pause the current track | `pause in event-guild` |
+| Resume the paused track | `resume in event-guild` |
+| Stop playback | `stop the track of event-guild` |
+
+## Track Events
+
+LavaPlayer provides events that fire during track lifecycle:
+
+```applescript
+# Fired when a track starts playing
+on track start:
+    send "Track started: %event-audiotrack% by %event-bot%" to console
+
+# Fired when a track ends
+on track end:
+    send "Track ended: %event-audiotrack% by %event-bot%" to console
+
+# Fired when a track encounters an exception
+on track exception:
+    send "Track exception: %event-audiotrack% by %event-bot%" to console
+
+# Fired when a track is paused
+on track pause:
+    send "Track paused: %event-audiotrack% by %event-bot%" to console
+
+# Fired when a track is resumed
+on track resume:
+    send "Track resumed: %event-audiotrack% by %event-bot%" to console
+
+# Fired when seeking within a track
+on track seek:
+    send "Track seeked: %event-audiotrack% by %event-bot%" to console
+```
+
+## Player Utility Features
+
+LavaPlayer provides two useful utility features: **autoplay** and **repeat**.
+
+### Repeat Mode
+
+When enabled, the currently playing track will automatically replay when it ends:
+
+```applescript
+discord command repeat [<text>]:
+    prefixes: !
+    trigger:
+        if arg-1 is not set:
+            # Check current repeat state
+            if repeat state of event-guild is true:
+                reply with "Repeat is **enabled**!"
+            else:
+                reply with "Repeat is **disabled**!"
+        else:
+            # Enable or disable repeat
+            if arg-1 is "enable":
+                set repeat state of event-guild to true
+                reply with "Repeat **enabled**!"
+            else if arg-1 is "disable":
+                set repeat state of event-guild to false
+                reply with "Repeat **disabled**!"
+            else:
+                reply with "Invalid state! Use `enable` or `disable`."
+```
+
+### Auto-Play Mode
+
+When enabled, the next track in the queue will automatically play when the current track finishes:
+
+```applescript
+discord command autoplay [<text>]:
+    prefixes: !
+    trigger:
+        if arg-1 is not set:
+            # Check current auto-play state
+            if auto play state of event-guild is true:
+                reply with "Auto Play is **enabled**!"
+            else:
+                reply with "Auto Play is **disabled**!"
+        else:
+            # Enable or disable auto-play
+            if arg-1 is "enable":
+                set auto play state of event-guild to true
+                reply with "Auto Play **enabled**!"
+            else if arg-1 is "disable":
+                set auto play state of event-guild to false
+                reply with "Auto Play **disabled**!"
+            else:
+                reply with "Invalid state! Use `enable` or `disable`."
+```
+
+<Aside type="caution">
+Repeat takes **priority** over auto-play. If both are enabled, the current track will repeat instead of advancing to the next track.
+</Aside>
+
+## Complete Example
+
+Here's a comprehensive example demonstrating a functional music bot with multiple commands:
+
+```applescript
+# Play command - searches and plays music
+discord command play <string>:
+    prefixes: !
+    trigger:
+        # Check if user is in a voice channel
+        set {_channel} to voice channel of event-member
+        if {_channel} is not set:
+            reply with "You are not in a voice channel!"
+            stop
+
+        set {_willHaveToConnect} to true
+
+        # Check if bot is already connected
+        set {_botChannel} to voice channel of (self member of event-bot in event-guild)
+        if {_botChannel} is set:
+            # Verify bot and user are in the same channel
+            if {_botChannel} is not {_channel}:
+                reply with "I am already connected to a different voice channel!"
+                stop
+            else:
+                set {_willHaveToConnect} to false
+
+        # Search for the requested track
+        search items with input arg-1:
+            on playlist load:
+                set {_track} to first element of tracks of loaded playlist
+
+            on no matches:
+                reply with "No matches found!"
+
+            on load error:
+                reply with "An error occurred while loading the track: %the exception%"
+
+        {_track} is set
+
+        # Check if bot is currently playing
+        set {_isPlaying} to false
+        if size of queue of event-guild is bigger than 0:
+            set {_isPlaying} to true
+        if playing track of event-guild is set:
+            set {_isPlaying} to true
+
+        # Play immediately if nothing is playing, otherwise queue
+        if {_isPlaying} is false:
+            force play {_track} in event-guild
+            reply with "**Now playing:** `%{_track}%`"
+        else:
+            add {_track} to queue of event-guild
+            reply with "**Track queued:** `%{_track}%` (position: `%size of queue of event-guild%`)"
+
+        # Connect bot if needed
+        if {_willHaveToConnect} is true:
+            connect event-bot to {_channel}
+
+# Stop command - stops playback and disconnects
+discord command stop:
+    prefixes: !
+    trigger:
+        stop the track of event-guild
+        disconnect from event-guild
+        reply with "**Stopped the track** bye bye! :wave:"
+
+# Skip command - skips to next track
+discord command skip:
+    prefixes: !
+    trigger:
+        if size of queue of event-guild is 0:
+            reply with "There is nothing after the current track!"
+            stop
+
+        # Skip returns the next track but doesn't play it automatically
+        skip track in event-guild and store it in {_track}
+        # Play the skipped track
+        force play {_track} in event-guild
+
+        reply with "**Skipped track! Now playing:** `%{_track}%`"
+
+# Pause command
+discord command pause:
+    prefixes: !
+    trigger:
+        pause track in event-guild
+        reply with "Paused track!"
+
+# Resume command
+discord command resume:
+    prefixes: !
+    trigger:
+        resume track in event-guild
+        reply with "Resumed track!"
+
+# Queue command - displays current queue
+discord command queue:
+    prefixes: !
+    trigger:
+        set {_queue::*} to queue of event-guild
+        if size of {_queue::*} is 0:
+            reply with "There is nothing in the queue!"
+            stop
+
+        set {_l::*} to "`>` **Audio Queue of __%event-guild%__:** (%size of {_queue::*}% items)"
+        add "" to {_l::*}
+        add "`0` - Currently playing: `%playing track of event-guild%`" to {_l::*}
+        add "" to {_l::*}
+        loop {_queue::*}:
+            add "`%loop-index%` - `%loop-value%`" to {_l::*}
+
+        reply with join {_l::*} with nl
+```
+
+## Troubleshooting
+
+### Bot Not Playing Audio
+
+- Verify the bot is connected to a voice channel
+- Ensure you've granted proper voice permissions
+- Check if the track was loaded successfully
+- Confirm the volume isn't set to 0
+
+### Tracks Not Loading
+
+- Verify your internet connection
+- Check if the URL is valid and accessible
+- Ensure the audio format is supported
+- Review console logs for specific errors
+
+### Queue Not Working
+
+- Remember: players are created when you first play a track
+- You cannot access queue or volume before playing at least once
+- Use `force play` to play a track immediately
+
+## Best Practices
+
+1. **Always check if users are in voice channels** before attempting to play music
+2. **Validate URLs and search queries** before loading tracks
+3. **Handle all load outcomes** (single load, playlist load, failures, no matches)
+4. **Implement proper error handling** for a better user experience
+5. **Use auto-play and repeat strategically** to enhance the listening experience
+6. **Clear the queue** when stopping playback to avoid confusion
+
+## Next Steps
+
+<Aside>
+Explore more DiSky features to enhance your music bot:
+</Aside>
+
+- [DiSky Events](/guides/events) - Learn about Discord events for better bot interaction
+- [Button Components](/messages/components) - Add interactive controls to your music bot
+- [Embeds Guide](/messages/embeds) - Create beautiful now-playing displays
+- [Other Modules](/modules/transkript) - Discover additional DiSky modules
+
+## Support
+
+Need help with LavaPlayer? Get support from the community:
+
+- [DiSky Discord Server](https://discord.gg/whMrSaYZQV)
+- [Patreon Page](https://www.patreon.com/itsthesky)
