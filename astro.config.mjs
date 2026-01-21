@@ -101,12 +101,12 @@ export default defineConfig({
 					collapsed: true,
 					items: [
 						{ label: 'Overview', slug: 'modules' },
-						{ label: 'ConsoleLogs', slug: 'modules/consolelogs' },
 						{ label: 'LavaPlayer', slug: 'modules/lavaplayer' },
 						{ label: 'DiSkyOAuth', slug: 'modules/diskyoauth' },
 						{ label: 'TranSkript', slug: 'modules/transkript' },
 						{ label: 'ParseSK', slug: 'modules/parsesk' },
 						{ label: 'Webhooks', slug: 'modules/webhooks' },
+						{ label: 'ConsoleLogs', slug: 'modules/consolelogs' },
 					],
 				},
 				{

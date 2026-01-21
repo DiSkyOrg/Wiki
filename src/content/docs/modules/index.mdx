@@ -23,15 +23,6 @@ While DiSky is built on the JDA library, some Discord features require additiona
 ## Available Modules
 
 <CardGrid>
-  <Card title="ConsoleLogs" icon="terminal">
-    Send and receive Minecraft console logs directly in Discord channels for real-time server monitoring.
-
-    <Badge text="Free" variant="success" />
-    <Badge text="v1.1+" variant="note" />
-
-    [View Documentation →](/modules/consolelogs)
-  </Card>
-
   <Card title="LavaPlayer" icon="seti:audio">
     Complete music bot solution with YouTube, SoundCloud, and local file support. Includes queue management, autoplay, and repeat modes.
 
@@ -75,6 +66,15 @@ While DiSky is built on the JDA library, some Discord features require additiona
     <Badge text="v1.0+" variant="note" />
 
     [View Documentation →](/modules/webhooks)
+  </Card>
+
+  <Card title="ConsoleLogs" icon="laptop">
+    Send and receive Minecraft console logs directly in Discord channels for real-time server monitoring.
+
+    <Badge text="Free" variant="success" />
+    <Badge text="v1.1+" variant="note" />
+
+    [View Documentation →](/modules/consolelogs)
   </Card>
 </CardGrid>
 
@@ -140,17 +140,18 @@ Beyond core DiSky modules, there are specialized add-ons for advanced functional
 
 ## Version Compatibility
 
-<Aside type="note" title="Coming Soon">
-Version compatibility information will be added here to help you choose the right module versions for your DiSky installation.
+<Aside type="caution" title="Update Status">
+Some modules are not yet updated to work with DiSky v4.27/Skript v2.14+. Those are marked with 'N/A', please wait until they are updated.
 </Aside>
 
-### Planned Compatibility Matrix
-
-This section will include:
-- Module versions compatible with each DiSky version
-- Minimum Skript version requirements
-- JDA version dependencies
-- Known compatibility issues
+| Module | v4.26 and below | v4.27 and above |
+|--------|-------------|-------------------|
+| LavaPlayer | v2.3.3 | v2.4.0 |
+| TranSkript | v1.5.0 | v1.6.0 |
+| ParseSK | v1.1.0 | v1.2.0 |
+| Webhooks | v1.0.0 | N/A (Deprecated) |
+| DiSkyOAuth | v1.0.0 | N/A |
+| ConsoleLogs | v1.0.0 - v1.1.0 | N/A |
 
 ## Troubleshooting
 
@@ -167,31 +168,3 @@ This section will include:
 - Check that the module loaded successfully
 - Verify module version compatibility
 - Update DiSky to the latest version
-
-### Premium Module Access
-
-- Confirm active Patreon subscription
-- Download from [DiSky Resources](https://resources.disky.me/resources?premium)
-- Join [DiSky Discord](https://disky.me/discord) for support
-
-## Next Steps
-
-<CardGrid>
-  <Card title="Install ConsoleLogs" icon="rocket">
-    Try the free ConsoleLogs module to get started with modules
-
-    [ConsoleLogs Guide →](/modules/consolelogs)
-  </Card>
-
-  <Card title="Explore Premium" icon="star">
-    See what premium modules can do for your bot
-
-    [View All Modules →](#available-modules)
-  </Card>
-
-  <Card title="Get Support" icon="discord">
-    Join our Discord community for help and updates
-
-    [Join Discord →](https://disky.me/discord)
-  </Card>
-</CardGrid>
