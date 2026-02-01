@@ -13,6 +13,7 @@ export default defineConfig({
 				backlinks: false,
 				graph: false,
 			})],
+			favicon: '/favicon.png',
 			title: 'DiSky',
 			description: 'Official documentation for DiSky - A powerful Skript addon for Discord bots',
 			components: {
